@@ -116,6 +116,25 @@ public class DatabaseManager {
                     animals_spawned BIGINT NOT NULL DEFAULT 0,
                     last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS straw_skyblock_robots (
+                    island_uuid CHAR(36) PRIMARY KEY,
+                    owner_uuid CHAR(36) NOT NULL,
+                    world_name VARCHAR(64) NOT NULL,
+                    origin_x INT NOT NULL,
+                    origin_y INT NOT NULL,
+                    origin_z INT NOT NULL,
+                    chest_x INT NULL,
+                    chest_y INT NULL,
+                    chest_z INT NULL,
+                    speed_level INT NOT NULL DEFAULT 1,
+                    length_level INT NOT NULL DEFAULT 1,
+                    active BOOLEAN NOT NULL DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_robot_owner (owner_uuid)
+                )
                 """
         };
 

@@ -69,6 +69,65 @@ animal-spawn:
     CAT: 4
     VILLAGER: 2
 
+robot:
+  # 小機器人：自動挖掘掃描範圍內的鵝卵石並存入連結的箱子。
+  enabled: true
+  # 每位玩家（島嶼）可擁有的機器人數量上限。
+  max-per-island: 1
+  # 挖到的方塊是否套用刷石機掉落表（true = 有機率挖出礦物；false = 固定鵝卵石）。
+  use-generator-drops: true
+  # 掃描的垂直半徑（原點上下各幾格）。
+  vertical-range: 1
+  # 新建機器人的預設等級。
+  default-speed-level: 1
+  default-length-level: 1
+  # 排程基礎週期（tick）；每台機器人實際挖掘間隔由速度等級決定，此值僅為掃描解析度。
+  task-period-ticks: 1
+  # 找不到等級定義時的後備值。
+  fallback-interval-ticks: 200
+  fallback-range: 2
+  # 速度等級 L1~L6：interval-ticks 越小挖得越快（20 tick = 1 秒）。
+  # cost 為升級花費（需啟用 Vault 經濟系統才會扣款，否則僅為佔位）。
+  speed-levels:
+    1:
+      interval-ticks: 200
+      cost: 0
+    2:
+      interval-ticks: 160
+      cost: 1000
+    3:
+      interval-ticks: 120
+      cost: 2500
+    4:
+      interval-ticks: 80
+      cost: 5000
+    5:
+      interval-ticks: 40
+      cost: 10000
+    6:
+      interval-ticks: 20
+      cost: 20000
+  # 長度 / 範圍等級 L1~L6：range 為水平掃描半徑（格），越大掃描範圍越廣。
+  length-levels:
+    1:
+      range: 2
+      cost: 0
+    2:
+      range: 3
+      cost: 1000
+    3:
+      range: 4
+      cost: 2500
+    4:
+      range: 5
+      cost: 5000
+    5:
+      range: 6
+      cost: 10000
+    6:
+      range: 7
+      cost: 20000
+
 protection:
   default-flags:
     visitor-break: false

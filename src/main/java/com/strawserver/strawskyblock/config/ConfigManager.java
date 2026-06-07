@@ -3,7 +3,13 @@ package com.strawserver.strawskyblock.config;
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -22,9 +28,28 @@ public class ConfigManager {
 
     public void load() {
         plugin.saveDefaultConfig();
+        mergeDefaults();
         plugin.reloadConfig();
         this.config = plugin.getConfig();
         validateGeneratorDrops();
+    }
+
+    private void mergeDefaults() {
+        File file = new File(plugin.getDataFolder(), "config.yml");
+        InputStream defStream = plugin.getResource("config.yml");
+        if (defStream == null) {
+            return;
+        }
+        YamlConfiguration current = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
+                new InputStreamReader(defStream, StandardCharsets.UTF_8));
+        current.setDefaults(defaults);
+        current.options().copyDefaults(true);
+        try {
+            current.save(file);
+        } catch (IOException e) {
+            plugin.getLogger().warning("無法合併新版 config.yml 預設值: " + e.getMessage());
+        }
     }
 
     public FileConfiguration raw() {
@@ -166,6 +191,108 @@ public class ConfigManager {
             }
         }
         return result;
+    }
+
+    // ---- robot (小機器人) ----
+    public boolean isRobotEnabled() {
+        return config.getBoolean("robot.enabled", true);
+    }
+
+    public int getRobotMaxPerIsland() {
+        return config.getInt("robot.max-per-island", 1);
+    }
+
+    public boolean isRobotUseGeneratorDrops() {
+        return config.getBoolean("robot.use-generator-drops", true);
+    }
+
+    public int getRobotVerticalRange() {
+        return Math.max(0, config.getInt("robot.vertical-range", 1));
+    }
+
+    public int getRobotDefaultSpeedLevel() {
+        return Math.max(1, config.getInt("robot.default-speed-level", 1));
+    }
+
+    public int getRobotDefaultLengthLevel() {
+        return Math.max(1, config.getInt("robot.default-length-level", 1));
+    }
+
+    public long getRobotTaskPeriodTicks() {
+        return Math.max(1L, config.getLong("robot.task-period-ticks", 1L));
+    }
+
+    public long getRobotFallbackInterval() {
+        return Math.max(1L, config.getLong("robot.fallback-interval-ticks", 200L));
+    }
+
+    public int getRobotFallbackRange() {
+        return Math.max(0, config.getInt("robot.fallback-range", 2));
+    }
+
+    public Map<Integer, Long> getRobotSpeedIntervals() {
+        Map<Integer, Long> result = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("robot.speed-levels");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Integer level = parseLevel(key);
+                if (level != null) {
+                    result.put(level, section.getLong(key + ".interval-ticks", getRobotFallbackInterval()));
+                }
+            }
+        }
+        return result;
+    }
+
+    public Map<Integer, Double> getRobotSpeedCosts() {
+        Map<Integer, Double> result = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("robot.speed-levels");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Integer level = parseLevel(key);
+                if (level != null) {
+                    result.put(level, section.getDouble(key + ".cost", 0.0D));
+                }
+            }
+        }
+        return result;
+    }
+
+    public Map<Integer, Integer> getRobotLengthRanges() {
+        Map<Integer, Integer> result = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("robot.length-levels");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Integer level = parseLevel(key);
+                if (level != null) {
+                    result.put(level, section.getInt(key + ".range", getRobotFallbackRange()));
+                }
+            }
+        }
+        return result;
+    }
+
+    public Map<Integer, Double> getRobotLengthCosts() {
+        Map<Integer, Double> result = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("robot.length-levels");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Integer level = parseLevel(key);
+                if (level != null) {
+                    result.put(level, section.getDouble(key + ".cost", 0.0D));
+                }
+            }
+        }
+        return result;
+    }
+
+    private Integer parseLevel(String key) {
+        try {
+            return Integer.parseInt(key.trim());
+        } catch (NumberFormatException e) {
+            plugin.getLogger().warning("[Robot] 無效的等級鍵值：" + key + "，已略過。");
+            return null;
+        }
     }
 
     // ---- protection default flags ----

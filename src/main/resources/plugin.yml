@@ -51,6 +51,8 @@ permissions:
     default: true
   strawskyblock.user.animals:
     default: true
+  strawskyblock.user.robot:
+    default: true
   strawskyblock.user.top:
     default: true
   strawskyblock.user.visit:

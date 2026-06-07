@@ -20,6 +20,7 @@ import com.strawserver.strawskyblock.listener.PlayerJoinListener;
 import com.strawserver.strawskyblock.listener.WorldProtectionListener;
 import com.strawserver.strawskyblock.placeholder.PlaceholderHook;
 import com.strawserver.strawskyblock.protection.ProtectionService;
+import com.strawserver.strawskyblock.robot.RobotService;
 import com.strawserver.strawskyblock.world.WorldManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.generator.ChunkGenerator;
@@ -46,6 +47,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
     private ProtectionService protectionService;
     private CobbleGeneratorService cobbleGeneratorService;
     private AnimalSpawnService animalSpawnService;
+    private RobotService robotService;
     private EconomyHook economyHook;
 
     private final Set<UUID> bypassing = ConcurrentHashMap.newKeySet();
@@ -77,6 +79,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         this.cobbleGeneratorService.start();
         this.animalSpawnService = new AnimalSpawnService(this);
         this.animalSpawnService.reload();
+        this.robotService = new RobotService(this);
 
         setupEconomy();
         setupPlaceholders();
@@ -84,12 +87,17 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         registerCommands();
 
         this.islandService.loadAll();
+        this.robotService.loadAll();
+        this.robotService.start();
 
         getLogger().info("StrawSkyBlock 已啟用。");
     }
 
     @Override
     public void onDisable() {
+        if (robotService != null) {
+            robotService.stop();
+        }
         if (cobbleGeneratorService != null) {
             cobbleGeneratorService.stop();
         }
@@ -149,6 +157,9 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         messageManager.load();
         cobbleGeneratorService.reload();
         animalSpawnService.reload();
+        if (robotService != null) {
+            robotService.reload();
+        }
     }
 
     @Override
@@ -205,6 +216,10 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     public AnimalSpawnService getAnimalSpawnService() {
         return animalSpawnService;
+    }
+
+    public RobotService getRobotService() {
+        return robotService;
     }
 
     public EconomyHook getEconomyHook() {

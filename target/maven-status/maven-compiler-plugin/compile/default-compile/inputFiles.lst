@@ -37,8 +37,15 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/placeholder/PlaceholderHook.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/protection/InteractionType.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/protection/ProtectionService.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/Robot.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotLevels.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotRepository.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotScanArea.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotService.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/UpgradeResult.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/BlockPosition.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/ItemBuilder.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/ItemDisplayNames.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/LocationSerializer.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/MiniMessageUtil.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/WeightedRandom.java

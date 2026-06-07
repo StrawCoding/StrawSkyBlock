@@ -225,6 +225,10 @@ public class IslandService {
 
     public void performDelete(Island island) {
         cache.remove(island);
+        // 連帶移除該島的小機器人，避免孤兒資料。
+        if (plugin.getRobotService() != null) {
+            plugin.getRobotService().onIslandRemoved(island.getIslandUuid());
+        }
         // 將島上玩家送回主世界
         World main = Bukkit.getWorlds().get(0);
         for (Player online : Bukkit.getOnlinePlayers()) {

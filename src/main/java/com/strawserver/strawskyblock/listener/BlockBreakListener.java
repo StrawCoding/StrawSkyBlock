@@ -66,7 +66,8 @@ public class BlockBreakListener implements Listener {
             loc.getWorld().dropItemNaturally(loc.toCenterLocation(), drop);
             if (drop.getType() != Material.COBBLESTONE) {
                 plugin.getMessageManager().send(player, "generator.ore-drop",
-                        MessageManager.placeholders("item", drop.getType().name()));
+                        MessageManager.placeholders("item",
+                                plugin.getMessageManager().getItemName(drop.getType())));
             }
         }
         plugin.getCobbleGeneratorService().removeGeneratedCobblestone(loc);
