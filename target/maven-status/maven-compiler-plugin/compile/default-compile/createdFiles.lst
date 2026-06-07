@@ -37,6 +37,7 @@ com/strawserver/strawskyblock/command/IslandCommand$1.class
 com/strawserver/strawskyblock/robot/UpgradeResult.class
 com/strawserver/strawskyblock/util/MiniMessageUtil.class
 com/strawserver/strawskyblock/listener/BlockPlaceListener.class
+com/strawserver/strawskyblock/listener/PlayerRespawnListener.class
 com/strawserver/strawskyblock/generator/OreDropTable.class
 com/strawserver/strawskyblock/robot/Robot.class
 com/strawserver/strawskyblock/gui/IslandAnimalGui.class
