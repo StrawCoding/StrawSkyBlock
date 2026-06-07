@@ -1,0 +1,125 @@
+You are the coding worker. Hermes is the orchestrator / PM.
+
+Division of labor:
+- Hermes provides the user request, necessary context, constraints, and acceptance criteria.
+- You own repository search, architecture understanding, implementation details, tests, bug fixing, and technical judgment.
+- Do not wait for Hermes to specify every file. Inspect the repo and choose the best implementation approach.
+- Do not expose secrets or credentials.
+- Keep the implementation coherent with the existing StrawSkyBlock codebase instead of forcing a brand-new architecture.
+
+Repository:
+/mnt/data/code/project/StrawMC/StrawSkyBlock
+
+Current situation discovered by Hermes:
+- This is a Maven Paper plugin project, currently not a git repository.
+- Existing package root: com.strawserver.strawskyblock
+- Existing generator flow includes:
+  - src/main/java/com/strawserver/strawskyblock/generator/CobbleGeneratorService.java
+  - src/main/java/com/strawserver/strawskyblock/listener/BlockBreakListener.java
+  - src/main/resources/config.yml
+  - src/main/resources/messages.yml
+- Current messages.yml has:
+  generator.ore-drop: "<gray>你從刷石機中挖出了 <yellow>{item}</yellow>。"
+- Current BlockBreakListener sends ore-drop using drop.getType().name(), so the user reports {item} is not displayed correctly / not human-friendly in-game.
+
+User request:
+1. Fix the generator message where {item} is not correctly displayed.
+2. Add a new small robot feature. The small robot can automatically mine cobblestone and store the mined drops in a specific chest. It has L1-L6 speed levels and length/range levels.
+
+Important interpretation:
+- The user expects Hermes to provide necessary information, but Cursor should make the professional implementation decisions.
+- Do not overfit to Hermes' guessed class names. Inspect the repo and choose a clean Paper plugin design.
+- The bot feature should be a solid first implementation, configurable, and not destructive.
+
+Task:
+Implement a coherent first version of the cobblestone mining small robot feature and fix the {item} display bug.
+
+Scope in this task:
+A. Fix item display
+- Make generator ore-drop messages show a proper Traditional Chinese item display name instead of raw enum names, and ensure the placeholder replacement works reliably.
+- Prefer a reusable item display-name utility or message/config map if appropriate.
+- At minimum, all current generator drop materials should display correctly:
+  COBBLESTONE, COAL, RAW_COPPER, RAW_IRON, RAW_GOLD, REDSTONE, LAPIS_LAZULI, EMERALD, DIAMOND, QUARTZ, AMETHYST_SHARD, ANCIENT_DEBRIS.
+- Do not break MiniMessage formatting.
+
+B. Add small robot feature
+- Add a small robot / cobble mining robot that can automatically mine cobblestone and put drops into a specific chest.
+- The robot must respect the island system and protection model. It should not mine arbitrary world blocks outside a player's island.
+- The robot should only operate in the configured skyblock island world.
+- The robot should mine cobblestone in its configured scan/mining path/range. Let Cursor decide the clean interaction model after inspecting the existing code, but keep it understandable for players/admins.
+- Drops should be inserted into a linked/specific chest. If the chest is missing/full/unloaded, handle gracefully and do not drop/delete items silently unless explicitly justified.
+- Robot levels are PLAYER UPGRADE FEATURES, not just admin config toggles:
+  - Speed level L1-L6: the player upgrades the robot speed level; higher level mines faster. Put the level definitions / tick intervals / cost hooks or placeholders in config.yml.
+  - Length/range level L1-L6: the player upgrades the robot length/range level; higher level scans/mines a longer line/range. Put the level definitions / range values / cost hooks or placeholders in config.yml.
+  - Persist each robot/player/island's current speed level and length level if you implement persistence in this pass. If full DB persistence is too large, implement the cleanest safe minimum and clearly report the limitation.
+  - Commands/UI should treat L1-L6 as upgrade progression, e.g. view current level, upgrade speed, upgrade length, enforce max L6, and reject downgrades/invalid levels unless admin override is explicitly designed.
+- The upgrade system should be extensible and config-driven.
+- The robot should be safe for server performance: scheduled task, bounded scans, no uncontrolled loops.
+- The robot should survive plugin reload in a reasonable way if persistence already exists or can be added safely. If full persistence is too large for this pass, implement the safest useful minimum and document the limitation in README/report.
+
+C. Commands / player interaction
+- Inspect the existing /is command structure and choose a consistent command UX.
+- Add a minimal, usable command set for the robot. Recommended shape, but you may adjust if the repo has better conventions:
+  /is robot create
+  /is robot chest
+  /is robot speed <1-6>
+  /is robot length <1-6>
+  /is robot start
+  /is robot stop
+  /is robot info
+  /is robot remove
+- Ensure permissions are coherent with existing plugin.yml patterns if command permissions exist.
+- All player-facing text should be Traditional Chinese and go through messages.yml where practical.
+
+D. Config / messages
+- Extend config.yml with robot settings, e.g. enabled, default levels, L1-L6 speed intervals, L1-L6 length/range values, max robots per island/player if you implement limits.
+- Extend messages.yml with Traditional Chinese robot messages and corrected item display names if you use message config for names.
+- Avoid hardcoding user-visible Chinese text if the existing project convention favors messages.yml.
+
+E. Data / persistence
+- Inspect existing database/repository architecture.
+- If the plugin already has MySQL repository patterns, decide whether robot state should be persisted now.
+- If implementing persistence, use async DB operations and keep Bukkit API calls on main thread.
+- Do not do MySQL queries on the main server thread.
+- If a non-persistent first version is safer, clearly document it and ensure no crash/data corruption risk.
+
+Non-negotiable constraints:
+- Java 21 / Paper plugin style must remain compatible with the current project.
+- Bukkit API operations must remain on the main thread.
+- MySQL/database work must not run synchronously on the main thread.
+- Keep all player-facing UI/messages in Traditional Chinese.
+- Do not expose or hardcode real credentials.
+- Do not silently skip failing tests/build. Investigate and fix root cause unless blocked.
+- Keep scope focused on generator item display + robot feature. Do not rewrite unrelated island systems.
+
+Acceptance criteria:
+1. {item} in generator.ore-drop displays a proper Traditional Chinese item name for all configured ore drops.
+2. A player/admin can configure a robot to mine cobblestone and store drops in a selected chest using consistent /is robot commands or an equivalent repo-consistent interaction.
+3. Robot supports L1-L6 speed upgrades and L1-L6 length/range upgrades as player progression features, not just direct arbitrary settings. Current levels are shown to the player, upgrade commands enforce max L6, and config.yml controls values/cost hooks/placeholders.
+4. Robot task is bounded and performance-safe.
+5. Robot does not mine outside the island world / island boundary.
+6. Full chest / missing chest / invalid island cases are handled gracefully with messages/logs and without item deletion surprises.
+7. Project builds successfully.
+8. Add or update tests where practical for non-Bukkit pure logic, such as level config parsing, item display mapping, or robot range calculation.
+9. README or in-code documentation is updated if the robot has important limitations.
+
+Verification required:
+- Inspect the repo before editing.
+- Run the smallest meaningful checks first.
+- Run Maven build/tests, likely:
+  mvn test
+  mvn package
+- If tests/build fail, investigate and fix root cause unless blocked.
+- If blocked by environment or dependency resolution, report exact command output and blocker.
+
+Return report:
+- Summary
+- Files changed
+- Commands run with pass/fail result
+- Test/build output summary
+- Important implementation decisions
+- How to use the robot in-game
+- Config keys added
+- Diff overview
+- Risks/blockers
+- Suggested next step

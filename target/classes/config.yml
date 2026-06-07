@@ -1,0 +1,89 @@
+plugin:
+  debug: false
+  language: zh_TW
+
+database:
+  type: mysql
+  host: localhost
+  port: 3306
+  database: straw_skyblock
+  username: root
+  password: password
+  pool-size: 10
+  # 額外連線參數
+  use-ssl: false
+
+world:
+  island-world: straw_skyblock_world
+  void-generator: true
+  island-spacing: 1000
+  island-size: 200
+  island-y: 100
+
+island:
+  max-islands-per-player: 1
+  create-cost: 0
+  reset-cost: 0
+  delete-confirm-seconds: 15
+  default-template: default
+
+template:
+  default:
+    type: internal
+    spawn-offset:
+      x: 0
+      y: 3
+      z: 0
+
+generator:
+  enabled: true
+  only-generated-cobblestone: true
+  fortune-support: false
+  drops:
+    COBBLESTONE: 57.4
+    COAL: 13.0
+    RAW_COPPER: 8.0
+    RAW_IRON: 7.0
+    RAW_GOLD: 4.0
+    REDSTONE: 4.0
+    LAPIS_LAZULI: 2.5
+    EMERALD: 1.0
+    DIAMOND: 1.0
+    QUARTZ: 1.0
+    AMETHYST_SHARD: 1.0
+    ANCIENT_DEBRIS: 0.1
+
+animal-spawn:
+  enabled: true
+  trigger: COBBLESTONE_BREAK
+  chance: 0.01
+  cooldown-seconds-per-island: 30
+  max-passive-mobs-per-island: 30
+  animals:
+    CHICKEN: 25
+    COW: 18
+    SHEEP: 18
+    PIG: 18
+    RABBIT: 10
+    WOLF: 5
+    CAT: 4
+    VILLAGER: 2
+
+protection:
+  default-flags:
+    visitor-break: false
+    visitor-place: false
+    visitor-container: false
+    visitor-button: false
+    visitor-pickup: false
+    visitor-damage-animals: false
+    pvp: false
+    explosion: false
+    fire-spread: false
+    mob-griefing: false
+    redstone: true
+
+economy:
+  enabled: true
+  provider: Vault
+  create-island-cost: 0

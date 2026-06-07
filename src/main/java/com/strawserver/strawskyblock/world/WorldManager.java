@@ -1,0 +1,89 @@
+package com.strawserver.strawskyblock.world;
+
+import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
+import org.bukkit.generator.ChunkGenerator;
+
+/**
+ * 負責於啟動時建立 / 載入空島專用世界。
+ */
+public class WorldManager {
+
+    private final StrawSkyBlockPlugin plugin;
+    private final VoidChunkGenerator generator;
+
+    public WorldManager(StrawSkyBlockPlugin plugin) {
+        this.plugin = plugin;
+        this.generator = new VoidChunkGenerator(plugin.getConfigManager().getIslandY());
+    }
+
+    public ChunkGenerator getGenerator() {
+        return generator;
+    }
+
+    /**
+     * 確保空島世界存在，必須在主執行緒呼叫。
+     */
+    public World loadOrCreateIslandWorld() {
+        String worldName = plugin.getConfigManager().getIslandWorld();
+        World existing = Bukkit.getWorld(worldName);
+        if (existing != null) {
+            applyWorldSettings(existing);
+            return existing;
+        }
+        WorldCreator creator = new WorldCreator(worldName);
+        creator.environment(World.Environment.NORMAL);
+        if (plugin.getConfigManager().isVoidGenerator()) {
+            creator.generator(generator);
+        }
+        World world = creator.createWorld();
+        if (world != null) {
+            applyWorldSettings(world);
+            plugin.getLogger().info("空島世界已載入：" + worldName);
+        } else {
+            plugin.getLogger().severe("無法建立空島世界：" + worldName);
+        }
+        return world;
+    }
+
+    private void applyWorldSettings(World world) {
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        world.setGameRule(GameRule.RANDOM_TICK_SPEED, 3);
+        world.setGameRule(GameRule.DO_FIRE_TICK, true);
+        world.setSpawnFlags(false, true);
+        world.setKeepSpawnInMemory(false);
+        ensureSafeWorldSpawn(world);
+    }
+
+    /**
+     * 在世界出生點下方鋪一小塊基岩平台，避免任何被送往世界出生點的玩家
+     * 直接掉入虛空，並將出生點設定為固定座標。
+     */
+    private void ensureSafeWorldSpawn(World world) {
+        int y = plugin.getConfigManager().getIslandY();
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                world.getBlockAt(dx, y - 1, dz).setType(Material.BEDROCK, false);
+            }
+        }
+        world.setSpawnLocation(new Location(world, 0.5, y, 0.5));
+    }
+
+    public World getIslandWorld() {
+        return Bukkit.getWorld(plugin.getConfigManager().getIslandWorld());
+    }
+
+    /**
+     * Bukkit 於世界初次建立時會呼叫此方法以取得自訂生成器。
+     */
+    public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+        return generator;
+    }
+}

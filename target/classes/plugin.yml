@@ -1,0 +1,79 @@
+name: StrawSkyBlock
+version: '1.0.2'
+main: com.strawserver.strawskyblock.StrawSkyBlockPlugin
+api-version: '1.21'
+author: StrawServer
+description: StrawServer SkyBlock plugin for Paper 1.21.11
+folia-supported: false
+
+libraries:
+  - com.zaxxer:HikariCP:5.1.0
+  - com.mysql:mysql-connector-j:8.4.0
+
+softdepend:
+  - Vault
+  - PlaceholderAPI
+  - LuckPerms
+
+commands:
+  is:
+    description: Open StrawSkyBlock menu
+    usage: /is
+    aliases:
+      - island
+      - skyblock
+      - sb
+
+permissions:
+  strawskyblock.user.open:
+    default: true
+  strawskyblock.user.create:
+    default: true
+  strawskyblock.user.home:
+    default: true
+  strawskyblock.user.sethome:
+    default: true
+  strawskyblock.user.invite:
+    default: true
+  strawskyblock.user.accept:
+    default: true
+  strawskyblock.user.kick:
+    default: true
+  strawskyblock.user.leave:
+    default: true
+  strawskyblock.user.delete:
+    default: true
+  strawskyblock.user.reset:
+    default: true
+  strawskyblock.user.settings:
+    default: true
+  strawskyblock.user.generator:
+    default: true
+  strawskyblock.user.animals:
+    default: true
+  strawskyblock.user.top:
+    default: true
+  strawskyblock.user.visit:
+    default: true
+  strawskyblock.limit.1:
+    default: true
+  strawskyblock.limit.2:
+    default: false
+  strawskyblock.limit.3:
+    default: false
+  strawskyblock.admin.reload:
+    default: op
+  strawskyblock.admin.tp:
+    default: op
+  strawskyblock.admin.delete:
+    default: op
+  strawskyblock.admin.reset:
+    default: op
+  strawskyblock.admin.info:
+    default: op
+  strawskyblock.admin.setowner:
+    default: op
+  strawskyblock.admin.bypass:
+    default: op
+  strawskyblock.admin.debug:
+    default: op

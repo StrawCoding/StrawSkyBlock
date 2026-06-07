@@ -1,0 +1,68 @@
+prefix: "<gradient:#D6A84F:#7CC66A>稻草空島</gradient> <gray>»</gray> "
+
+common:
+  no-permission: "<red>你沒有權限執行此操作。"
+  player-only: "<red>此指令只能由玩家執行。"
+  player-not-found: "<red>找不到玩家 <yellow>{player}</yellow>。"
+  reload-usage: "<gray>用法：/is admin reload"
+
+island:
+  created: "<green>你的空島已建立完成！"
+  creating: "<yellow>正在建立你的空島，請稍候..."
+  create-failed: "<red>建立空島失敗，請聯絡管理員。"
+  already-have: "<red>你已經擁有一座空島。"
+  no-island: "<red>你還沒有空島，請先建立。"
+  teleport-home: "<green>已傳送回你的空島。"
+  set-home: "<green>已設定空島傳送點。"
+  set-home-outside: "<red>你必須在自己的空島範圍內才能設定傳送點。"
+  deleted: "<green>你的空島已刪除。"
+  delete-confirm: "<red>確定要刪除空島嗎？此操作無法復原！再次點擊或輸入 <yellow>/is delete</yellow> 以確認（{seconds} 秒內）。"
+  reset: "<green>你的空島已重置。"
+  reset-confirm: "<red>確定要重置空島嗎？島上所有方塊將清除！再次輸入 <yellow>/is reset</yellow> 以確認（{seconds} 秒內）。"
+  limit-reached: "<red>你已達到可擁有的空島數量上限。"
+
+members:
+  invite-sent: "<green>已邀請 <yellow>{player}</yellow> 加入你的空島。"
+  invite-received: "<yellow>{player}</yellow> 邀請你加入空島，請輸入 <green>/is accept</green> 接受或 <red>/is deny</red> 拒絕。"
+  invite-none: "<red>你目前沒有待處理的邀請。"
+  invite-expired: "<red>該邀請已過期。"
+  invite-accepted: "<green>你已加入 <yellow>{player}</yellow> 的空島。"
+  invite-denied: "<yellow>你已拒絕邀請。"
+  invite-self: "<red>你不能邀請自己。"
+  already-member: "<red><yellow>{player}</yellow> 已經是島嶼成員。"
+  kicked: "<green>已將 <yellow>{player}</yellow> 踢出空島。"
+  kicked-target: "<red>你已被踢出空島。"
+  kick-not-member: "<red><yellow>{player}</yellow> 不是你的島嶼成員。"
+  left: "<green>你已離開空島。"
+  owner-cannot-leave: "<red>島主無法離開自己的空島，請使用刪除或轉移島主。"
+  not-member: "<red>你不是任何島嶼的成員。"
+  list-header: "<gold>島嶼成員列表："
+  list-entry: "<gray> - <yellow>{player}</yellow> <gray>({role})"
+
+protection:
+  cannot-break: "<red>你不能破壞這座空島的方塊。"
+  cannot-place: "<red>你不能在這座空島放置方塊。"
+  cannot-interact: "<red>你不能與這座空島的物品互動。"
+  cannot-damage: "<red>你不能攻擊這座空島的生物。"
+  cannot-pvp: "<red>這座空島禁止 PvP。"
+
+generator:
+  ore-drop: "<gray>你從刷石機中挖出了 <yellow>{item}</yellow>。"
+  animal-spawned: "<green>你的空島生成了一隻 <yellow>{animal}</yellow>！"
+
+visit:
+  teleported: "<green>已傳送到 <yellow>{player}</yellow> 的空島。"
+  no-target-island: "<red><yellow>{player}</yellow> 沒有空島。"
+
+admin:
+  reloaded: "<green>StrawSkyBlock 已重新載入。"
+  bypass-on: "<green>已開啟管理員繞過模式。"
+  bypass-off: "<yellow>已關閉管理員繞過模式。"
+  debug-on: "<green>已開啟除錯模式。"
+  debug-off: "<yellow>已關閉除錯模式。"
+  tp-done: "<green>已傳送到 <yellow>{player}</yellow> 的空島。"
+  deleted-other: "<green>已刪除 <yellow>{player}</yellow> 的空島。"
+  reset-other: "<green>已重置 <yellow>{player}</yellow> 的空島。"
+  setowner-done: "<green>已將 <yellow>{player}</yellow> 的空島轉移給 <yellow>{newowner}</yellow>。"
+  info-header: "<gold>===== 島嶼資訊 ====="
+  info-line: "<gray>{key}: <white>{value}"
