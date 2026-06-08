@@ -2,7 +2,7 @@ plugin:
   debug: false
   language: zh_TW
 
-# 錯誤診斷：StrawSkyBlock 控制的流程（重生回家、島嶼傳送、建立/造訪/重置/管理員傳送）
+# 錯誤診斷：StrawSkyBlock 控制的流程（重生回家、島嶼傳送、/spawn 攔截、建立/造訪/重置/管理員傳送）
 # 失敗時，會於 console 以 [StrawSkyBlock][錯誤診斷] 前綴印出一小塊可定位問題的錯誤區塊。
 diagnostics:
   # 是否將錯誤區塊另存到插件資料夾的 error-log.txt（方便事後查閱）。
@@ -13,6 +13,14 @@ diagnostics:
   max-records: 20
   # 例外堆疊保留的行數上限（避免再次淹沒日誌）。
   stack-frames: 8
+
+# 在空島世界內攔截 /spawn（HuskHomes），改走 Paper-safe 的 chunk 同步傳送，避免客戶端卡在「載入地形」。
+spawn-intercept:
+  enabled: true
+  # 與 HuskHomes 相同權限；無權限時不攔截，交由 HuskHomes 處理拒絕訊息。
+  permission: huskhomes.command.spawn
+  # 相對於伺服器根目錄；優先讀取 HuskHomes 的出生點設定。
+  huskhomes-spawn-file: plugins/HuskHomes/spawn.yml
 
 database:
   type: mysql

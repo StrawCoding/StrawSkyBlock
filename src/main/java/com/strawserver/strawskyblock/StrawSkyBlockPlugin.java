@@ -19,6 +19,7 @@ import com.strawserver.strawskyblock.listener.InventoryClickListener;
 import com.strawserver.strawskyblock.listener.PlayerInteractListener;
 import com.strawserver.strawskyblock.listener.PlayerJoinListener;
 import com.strawserver.strawskyblock.listener.PlayerRespawnListener;
+import com.strawserver.strawskyblock.listener.SpawnCommandListener;
 import com.strawserver.strawskyblock.listener.WorldProtectionListener;
 import com.strawserver.strawskyblock.placeholder.PlaceholderHook;
 import com.strawserver.strawskyblock.protection.ProtectionService;
@@ -143,6 +144,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         pm.registerEvents(new CreatureSpawnListener(this), this);
         pm.registerEvents(new PlayerJoinListener(this), this);
         pm.registerEvents(new PlayerRespawnListener(this), this);
+        pm.registerEvents(new SpawnCommandListener(this), this);
         pm.registerEvents(new WorldProtectionListener(this), this);
     }
 

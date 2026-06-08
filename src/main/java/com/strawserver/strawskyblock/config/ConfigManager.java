@@ -87,6 +87,19 @@ public class ConfigManager {
         return Math.max(1, config.getInt("diagnostics.stack-frames", 8));
     }
 
+    // ---- spawn intercept (/spawn from island world) ----
+    public boolean isSpawnInterceptEnabled() {
+        return config.getBoolean("spawn-intercept.enabled", true);
+    }
+
+    public String getSpawnInterceptPermission() {
+        return config.getString("spawn-intercept.permission", "huskhomes.command.spawn");
+    }
+
+    public String getSpawnInterceptHuskHomesFile() {
+        return config.getString("spawn-intercept.huskhomes-spawn-file", "plugins/HuskHomes/spawn.yml");
+    }
+
     // ---- database ----
     public String getDbHost() {
         return config.getString("database.host", "localhost");

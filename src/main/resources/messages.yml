@@ -6,6 +6,10 @@ common:
   player-not-found: "<red>找不到玩家 <yellow>{player}</yellow>。"
   reload-usage: "<gray>用法：/is admin reload"
 
+spawn:
+  teleport-success: "<green>已傳送至伺服器出生點。"
+  destination-unavailable: "<red>找不到有效的出生點設定，請聯絡管理員。"
+
 island:
   created: "<green>你的空島已建立完成！"
   creating: "<yellow>正在建立你的空島，請稍候..."

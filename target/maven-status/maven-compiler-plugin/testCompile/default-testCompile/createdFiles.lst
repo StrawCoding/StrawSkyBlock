@@ -1,6 +1,8 @@
+com/strawserver/strawskyblock/listener/PlayerRespawnListenerTest.class
+com/strawserver/strawskyblock/diagnostic/DiagnosticReportTest.class
 com/strawserver/strawskyblock/robot/RobotLevelsTest.class
 com/strawserver/strawskyblock/robot/RobotScanAreaTest.class
+com/strawserver/strawskyblock/util/SpawnCommandParserTest.class
 com/strawserver/strawskyblock/util/ItemDisplayNamesTest.class
-com/strawserver/strawskyblock/listener/PlayerRespawnListenerTest.class
 com/strawserver/strawskyblock/util/IslandTeleportHelperTest.class
-com/strawserver/strawskyblock/diagnostic/DiagnosticReportTest.class
+com/strawserver/strawskyblock/util/ServerSpawnResolverTest.class
