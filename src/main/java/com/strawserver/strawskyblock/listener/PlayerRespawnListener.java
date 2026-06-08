@@ -14,7 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,17 +26,19 @@ import java.util.concurrent.ConcurrentHashMap;
  * 對 index 0 以外的島嶼尤其危險（落點遠離自己的島，甚至可能掉入虛空）。</p>
  *
  * <p>採用的規則（僅治本、不擴大影響範圍）：當玩家屬於某座空島、其家點可用、且此次「預設重生落點」
- * 位於空島世界、並且不是玩家自行設定的床／重生錨時，將重生落點改為玩家自己的島嶼家點。
+ * 位於空島世界、並且不是玩家自行設定的床／重生錨時，於重生完成後將玩家傳送至自己的島嶼家點。
  * 主世界（或其他世界）的死亡重生完全不受影響，玩家自設的床／錨重生點也予以尊重。</p>
  *
- * <p>僅改變重生座標不足以讓客戶端正確載入虛空空島世界中的遠端家點區塊；
- * 必須與 {@link IslandTeleportHelper} 的顯式傳送流程相同，於重生前預載目標區塊，
- * 並在 Paper 完成重生後於下一 tick 再次確保區塊已載入。</p>
+ * <p>v1.0.4 僅在 {@link PlayerRespawnEvent} 以 {@code setRespawnLocation(home)} 改變落點並
+ * 於伺服器端 {@code getChunkAt()} 預載區塊，仍無法讓客戶端脫離「載入地形」：重生流程不會像
+ * {@link IslandTeleportHelper#teleportPlayer} 的 {@code teleportAsync} 那樣重新同步區塊封包。
+ * 因此不在重生事件中直接改落點，改為維持原版世界出生點（區塊已載入），並在
+ * {@link PlayerPostRespawnEvent} 下一 tick 以與 /is home 相同的顯式傳送流程送玩家回家。</p>
  */
 public class PlayerRespawnListener implements Listener {
 
     private final StrawSkyBlockPlugin plugin;
-    private final Set<UUID> pendingIslandHomeChunkEnsure = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Location> pendingIslandHomeTeleport = new ConcurrentHashMap<>();
 
     public PlayerRespawnListener(StrawSkyBlockPlugin plugin) {
         this.plugin = plugin;
@@ -47,7 +49,6 @@ public class PlayerRespawnListener implements Listener {
         Player player = event.getPlayer();
         Island island = plugin.getIslandService().getByPlayer(player.getUniqueId());
         if (island == null) {
-            // 沒有島：維持原版／預設行為。
             return;
         }
 
@@ -55,24 +56,27 @@ public class PlayerRespawnListener implements Listener {
         boolean explicitSpawnPoint = event.isBedSpawn() || event.isAnchorSpawn();
         boolean respawnInIslandWorld = isInIslandWorld(event.getRespawnLocation());
 
-        if (!shouldRedirectToIslandHome(true, home != null, respawnInIslandWorld, explicitSpawnPoint)) {
-            // 家點不可用（世界未載入等）、落點不在空島世界、或玩家有床／錨：維持原版行為，不丟例外。
+        if (!shouldDeferIslandHomeTeleportAfterRespawn(true, home != null, respawnInIslandWorld, explicitSpawnPoint)) {
             return;
         }
 
-        IslandTeleportHelper.prepareForTeleport(player, home, IslandTeleportHelper.DEFAULT_CHUNK_RADIUS);
-        event.setRespawnLocation(home);
-        pendingIslandHomeChunkEnsure.add(player.getUniqueId());
+        pendingIslandHomeTeleport.put(player.getUniqueId(), home.clone());
+        if (plugin.getConfigManager().isDebug()) {
+            plugin.getLogger().info("空島重生：玩家=" + player.getName()
+                    + " 將於重生完成後傳送至家點 "
+                    + formatLoc(home));
+        }
     }
 
     /**
-     * Paper 在 {@link PlayerRespawnEvent} 之後才將玩家放到最終落點；於重生完成後再確保一次區塊，
-     * 避免客戶端卡在「載入地形」。
+     * Paper 在 {@link PlayerRespawnEvent} 之後才將玩家放到最終落點；於重生完成後下一 tick
+     * 以 {@link IslandTeleportHelper#teleportPlayer} 顯式傳送，確保客戶端收到區塊資料。
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPostRespawn(PlayerPostRespawnEvent event) {
         Player player = event.getPlayer();
-        if (!pendingIslandHomeChunkEnsure.remove(player.getUniqueId())) {
+        Location home = pendingIslandHomeTeleport.remove(player.getUniqueId());
+        if (home == null) {
             return;
         }
 
@@ -80,16 +84,23 @@ public class PlayerRespawnListener implements Listener {
             if (!player.isOnline()) {
                 return;
             }
-            IslandTeleportHelper.ensureChunksLoaded(
-                    player.getWorld(),
-                    player.getLocation(),
-                    IslandTeleportHelper.DEFAULT_CHUNK_RADIUS);
+            Location destination = home.getWorld() != null ? home : resolveHome(player);
+            if (destination == null || destination.getWorld() == null) {
+                plugin.getLogger().warning("空島重生傳送失敗：家點不可用（玩家=" + player.getName() + "）");
+                return;
+            }
+            IslandTeleportHelper.teleportPlayer(plugin, player, destination, null);
         });
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        pendingIslandHomeChunkEnsure.remove(event.getPlayer().getUniqueId());
+        pendingIslandHomeTeleport.remove(event.getPlayer().getUniqueId());
+    }
+
+    private Location resolveHome(Player player) {
+        Island island = plugin.getIslandService().getByPlayer(player.getUniqueId());
+        return island == null ? null : island.getHomeLocation();
     }
 
     private boolean isInIslandWorld(Location location) {
@@ -100,30 +111,39 @@ public class PlayerRespawnListener implements Listener {
         return world != null && world.getName().equals(plugin.getConfigManager().getIslandWorld());
     }
 
+    private static String formatLoc(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "null";
+        }
+        return location.getWorld().getName() + "@"
+                + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
+    }
+
     /**
      * 純粹的決策邏輯，方便在不依賴 Bukkit 執行環境下進行單元測試。
      *
-     * @param playerHasIsland     玩家是否屬於某座空島
-     * @param islandHomeAvailable 該島的家點是否可用（世界已載入且不為 null）
+     * @param playerHasIsland      玩家是否屬於某座空島
+     * @param islandHomeAvailable  該島的家點是否可用（世界已載入且不為 null）
      * @param respawnInIslandWorld 此次預設重生落點是否位於空島世界
-     * @param explicitSpawnPoint  是否為玩家自設的床／重生錨重生點
-     * @return 是否應將重生落點改為該島家點
+     * @param explicitSpawnPoint   是否為玩家自設的床／重生錨重生點
+     * @return 是否應於重生完成後傳送至該島家點
      */
-    public static boolean shouldRedirectToIslandHome(boolean playerHasIsland,
-                                                     boolean islandHomeAvailable,
-                                                     boolean respawnInIslandWorld,
-                                                     boolean explicitSpawnPoint) {
+    public static boolean shouldDeferIslandHomeTeleportAfterRespawn(boolean playerHasIsland,
+                                                                    boolean islandHomeAvailable,
+                                                                    boolean respawnInIslandWorld,
+                                                                    boolean explicitSpawnPoint) {
         return playerHasIsland && islandHomeAvailable && respawnInIslandWorld && !explicitSpawnPoint;
     }
 
     /**
-     * 是否應在重生流程中預載家點區塊；與 {@link #shouldRedirectToIslandHome} 條件一致。
+     * @deprecated 使用 {@link #shouldDeferIslandHomeTeleportAfterRespawn}；保留以相容舊測試語意。
      */
-    public static boolean shouldPrepareChunksForIslandHomeRespawn(boolean playerHasIsland,
-                                                                  boolean islandHomeAvailable,
-                                                                  boolean respawnInIslandWorld,
-                                                                  boolean explicitSpawnPoint) {
-        return shouldRedirectToIslandHome(
+    @Deprecated
+    public static boolean shouldRedirectToIslandHome(boolean playerHasIsland,
+                                                     boolean islandHomeAvailable,
+                                                     boolean respawnInIslandWorld,
+                                                     boolean explicitSpawnPoint) {
+        return shouldDeferIslandHomeTeleportAfterRespawn(
                 playerHasIsland, islandHomeAvailable, respawnInIslandWorld, explicitSpawnPoint);
     }
 }
