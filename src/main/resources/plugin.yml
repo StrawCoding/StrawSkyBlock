@@ -79,3 +79,5 @@ permissions:
     default: op
   strawskyblock.admin.debug:
     default: op
+  strawskyblock.admin.diag:
+    default: op

@@ -1,5 +1,5 @@
 name: StrawSkyBlock
-version: '1.0.5'
+version: '1.0.6'
 main: com.strawserver.strawskyblock.StrawSkyBlockPlugin
 api-version: '1.21'
 author: StrawServer
@@ -78,4 +78,6 @@ permissions:
   strawskyblock.admin.bypass:
     default: op
   strawskyblock.admin.debug:
+    default: op
+  strawskyblock.admin.diag:
     default: op

@@ -35,7 +35,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             "delete", "reset", "members", "settings", "generator", "animals", "robot", "top", "visit", "admin");
 
     private static final List<String> ADMIN_SUBS = Arrays.asList(
-            "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug");
+            "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug", "diag");
 
     private static final List<String> ROBOT_SUBS = Arrays.asList(
             "create", "chest", "speed", "length", "start", "stop", "info", "remove");
@@ -478,6 +478,10 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
                 if (noPerm(sender, "strawskyblock.admin.setowner")) return;
                 handleAdminSetOwner(sender, args);
             }
+            case "diag" -> {
+                if (noPerm(sender, "strawskyblock.admin.diag")) return;
+                handleAdminDiag(sender, args);
+            }
             default -> sender.sendMessage(plugin.getMessageManager().get("common.reload-usage"));
         }
     }
@@ -501,7 +505,8 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (island.getHomeLocation() != null) {
-            IslandTeleportHelper.teleportPlayer(plugin, player, island.getHomeLocation(), null);
+            IslandTeleportHelper.teleportPlayer(plugin, player, island.getHomeLocation(), null,
+                    "admin-tp-teleport");
             plugin.getMessageManager().send(sender, "admin.tp-done",
                     MessageManager.placeholders("player", args[2]));
         }
@@ -568,6 +573,31 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
         plugin.getIslandService().setOwner(island, newOwnerUuid, newOwnerName);
         plugin.getMessageManager().send(sender, "admin.setowner-done",
                 MessageManager.placeholders("player", args[2], "newowner", newOwnerName));
+    }
+
+    private void handleAdminDiag(CommandSender sender, String[] args) {
+        int limit = 5;
+        if (args.length >= 3) {
+            try {
+                limit = Math.max(1, Integer.parseInt(args[2]));
+            } catch (NumberFormatException ignored) {
+                // 維持預設值
+            }
+        }
+        var reports = plugin.getDiagnosticService().recent(limit);
+        if (reports.isEmpty()) {
+            plugin.getMessageManager().send(sender, "diagnostics.none");
+            return;
+        }
+        sender.sendMessage(plugin.getMessageManager().get("diagnostics.list-header",
+                MessageManager.placeholders("count", String.valueOf(reports.size()))));
+        for (var report : reports) {
+            sender.sendMessage(net.kyori.adventure.text.Component.text(
+                    " - " + report.oneLineSummary()));
+        }
+        plugin.getMessageManager().send(sender, "diagnostics.list-footer",
+                MessageManager.placeholders("file",
+                        plugin.getDiagnosticService().errorFilePath().toString()));
     }
 
     // =========================================================================

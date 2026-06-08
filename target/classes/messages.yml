@@ -110,3 +110,10 @@ admin:
   setowner-done: "<green>已將 <yellow>{player}</yellow> 的空島轉移給 <yellow>{newowner}</yellow>。"
   info-header: "<gold>===== 島嶼資訊 ====="
   info-line: "<gray>{key}: <white>{value}"
+
+diagnostics:
+  # 發生錯誤時對線上管理員的即時提示。
+  admin-alert: "<red>偵測到空島操作失敗（<yellow>{operation}</yellow>），請查看後台 <yellow>[錯誤診斷]</yellow> 區塊，或輸入 <yellow>/is admin diag</yellow> 檢視。"
+  none: "<green>目前沒有任何錯誤診斷記錄。"
+  list-header: "<gold>===== 最近的錯誤診斷（{count} 筆） ====="
+  list-footer: "<gray>完整錯誤區塊請見：<white>{file}"

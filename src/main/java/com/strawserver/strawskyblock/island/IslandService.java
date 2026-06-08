@@ -135,7 +135,8 @@ public class IslandService {
                     island.setHome(home);
                     cache.add(island);
                     if (player.isOnline()) {
-                        IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.created");
+                        IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.created",
+                                "island-create-teleport");
                     }
                     // home 已由模板計算，更新回資料庫（非阻塞）
                     runAsync(() -> {
@@ -166,7 +167,8 @@ public class IslandService {
             msg(player, "island.create-failed");
             return;
         }
-        IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.teleport-home");
+        IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.teleport-home",
+                "island-home-teleport");
     }
 
     public void setHome(Player player) {
@@ -204,7 +206,7 @@ public class IslandService {
         }
         Location home = island.getHomeLocation();
         if (home != null) {
-            IslandTeleportHelper.teleportPlayer(plugin, player, home, null);
+            IslandTeleportHelper.teleportPlayer(plugin, player, home, null, "island-visit-teleport");
             msg(player, "visit.teleported", MessageManager.placeholders("player", island.getOwnerName()));
         }
     }
@@ -232,7 +234,8 @@ public class IslandService {
         World main = Bukkit.getWorlds().get(0);
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (island.contains(online.getLocation())) {
-                IslandTeleportHelper.teleportPlayer(plugin, online, main.getSpawnLocation(), null);
+                IslandTeleportHelper.teleportPlayer(plugin, online, main.getSpawnLocation(), null,
+                        "island-delete-evict");
             }
         }
         runAsync(() -> {
@@ -254,7 +257,8 @@ public class IslandService {
             if (player.isOnline()) {
                 Location home = island.getHomeLocation();
                 if (home != null) {
-                    IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.reset");
+                    IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.reset",
+                            "island-reset-teleport");
                 } else {
                     msg(player, "island.reset");
                 }

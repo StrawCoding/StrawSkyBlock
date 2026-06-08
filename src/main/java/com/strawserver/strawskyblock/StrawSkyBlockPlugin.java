@@ -4,6 +4,7 @@ import com.strawserver.strawskyblock.command.IslandCommand;
 import com.strawserver.strawskyblock.config.ConfigManager;
 import com.strawserver.strawskyblock.config.MessageManager;
 import com.strawserver.strawskyblock.database.DatabaseManager;
+import com.strawserver.strawskyblock.diagnostic.DiagnosticService;
 import com.strawserver.strawskyblock.economy.EconomyHook;
 import com.strawserver.strawskyblock.economy.VaultEconomyHook;
 import com.strawserver.strawskyblock.generator.AnimalSpawnService;
@@ -42,6 +43,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     private ConfigManager configManager;
     private MessageManager messageManager;
+    private DiagnosticService diagnosticService;
     private DatabaseManager databaseManager;
     private WorldManager worldManager;
     private IslandService islandService;
@@ -60,6 +62,8 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
         this.messageManager = new MessageManager(this);
         this.messageManager.load();
+
+        this.diagnosticService = new DiagnosticService(this);
 
         this.databaseManager = new DatabaseManager(this);
         try {
@@ -194,6 +198,10 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     public MessageManager getMessageManager() {
         return messageManager;
+    }
+
+    public DiagnosticService getDiagnosticService() {
+        return diagnosticService;
     }
 
     public DatabaseManager getDatabaseManager() {

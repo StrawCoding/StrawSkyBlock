@@ -2,6 +2,8 @@ com/strawserver/strawskyblock/listener/WorldProtectionListener.class
 com/strawserver/strawskyblock/generator/CobbleGeneratorService.class
 com/strawserver/strawskyblock/gui/ConfirmGui.class
 com/strawserver/strawskyblock/island/IslandCache.class
+com/strawserver/strawskyblock/diagnostic/DiagnosticService.class
+com/strawserver/strawskyblock/diagnostic/DiagnosticReport$Builder.class
 com/strawserver/strawskyblock/database/DatabaseManager.class
 com/strawserver/strawskyblock/robot/RobotRepository.class
 com/strawserver/strawskyblock/listener/InventoryClickListener.class
@@ -29,6 +31,7 @@ com/strawserver/strawskyblock/util/ItemDisplayNames.class
 com/strawserver/strawskyblock/protection/ProtectionService.class
 com/strawserver/strawskyblock/gui/IslandMemberGui.class
 com/strawserver/strawskyblock/listener/BlockBreakListener.class
+com/strawserver/strawskyblock/diagnostic/DiagnosticReport.class
 com/strawserver/strawskyblock/island/IslandFlag.class
 com/strawserver/strawskyblock/world/VoidChunkGenerator.class
 com/strawserver/strawskyblock/island/IslandTemplateService.class

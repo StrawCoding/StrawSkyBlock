@@ -2,6 +2,18 @@ plugin:
   debug: false
   language: zh_TW
 
+# 錯誤診斷：StrawSkyBlock 控制的流程（重生回家、島嶼傳送、建立/造訪/重置/管理員傳送）
+# 失敗時，會於 console 以 [StrawSkyBlock][錯誤診斷] 前綴印出一小塊可定位問題的錯誤區塊。
+diagnostics:
+  # 是否將錯誤區塊另存到插件資料夾的 error-log.txt（方便事後查閱）。
+  write-file: true
+  # 發生錯誤時，是否向線上且具 strawskyblock.admin.diag 權限的管理員發送提示。
+  notify-admins: true
+  # 記憶體中保留的最近錯誤筆數（供 /is admin diag 查詢）。
+  max-records: 20
+  # 例外堆疊保留的行數上限（避免再次淹沒日誌）。
+  stack-frames: 8
+
 database:
   type: mysql
   host: localhost

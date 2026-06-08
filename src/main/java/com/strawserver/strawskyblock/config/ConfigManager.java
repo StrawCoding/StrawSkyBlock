@@ -70,6 +70,23 @@ public class ConfigManager {
         return config.getString("plugin.language", "zh_TW");
     }
 
+    // ---- diagnostics (錯誤診斷) ----
+    public boolean isDiagnosticsWriteFile() {
+        return config.getBoolean("diagnostics.write-file", true);
+    }
+
+    public boolean isDiagnosticsNotifyAdmins() {
+        return config.getBoolean("diagnostics.notify-admins", true);
+    }
+
+    public int getDiagnosticsMaxRecords() {
+        return Math.max(1, config.getInt("diagnostics.max-records", 20));
+    }
+
+    public int getDiagnosticsStackFrames() {
+        return Math.max(1, config.getInt("diagnostics.stack-frames", 8));
+    }
+
     // ---- database ----
     public String getDbHost() {
         return config.getString("database.host", "localhost");

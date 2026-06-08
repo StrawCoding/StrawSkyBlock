@@ -8,8 +8,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.logging.Level;
-
 /**
  * 空島傳送輔助：在 Paper 1.21 上跨世界傳送至虛空空島世界時，
  * 必須先確保目標區塊（以及跨維度時的世界出生區塊）已載入，並處理傳送結果。
@@ -63,6 +61,9 @@ public final class IslandTeleportHelper {
         }
     }
 
+    /** 預設 operation 名稱（未指定來源情境時）。 */
+    public static final String DEFAULT_OPERATION = "island-teleport";
+
     /**
      * 將玩家傳送至空島位置。成功時可選擇發送訊息；失敗時記錄日誌並通知玩家。
      *
@@ -72,15 +73,31 @@ public final class IslandTeleportHelper {
                                          Player player,
                                          Location destination,
                                          @Nullable String successMessageKey) {
+        return teleportPlayer(plugin, player, destination, successMessageKey, DEFAULT_OPERATION);
+    }
+
+    /**
+     * 同 {@link #teleportPlayer(StrawSkyBlockPlugin, Player, Location, String)}，但可指定
+     * {@code operation} 名稱，使失敗時的錯誤診斷區塊能標示是哪一個流程出問題
+     * （例如 respawn-home-teleport、island-home-teleport）。
+     *
+     * @return 是否已發起傳送（目的地無效時回傳 false）
+     */
+    public static boolean teleportPlayer(StrawSkyBlockPlugin plugin,
+                                         Player player,
+                                         Location destination,
+                                         @Nullable String successMessageKey,
+                                         String operation) {
         if (destination == null || destination.getWorld() == null) {
-            plugin.getLogger().warning("空島傳送失敗：目的地無效（玩家=" + player.getName() + "）");
+            plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+                    "目的地無效（destination 或其所在世界為 null）", null);
             plugin.getMessageManager().send(player, "island.teleport-failed");
             return false;
         }
 
         if (!Bukkit.isPrimaryThread()) {
             Bukkit.getScheduler().runTask(plugin,
-                    () -> teleportPlayer(plugin, player, destination, successMessageKey));
+                    () -> teleportPlayer(plugin, player, destination, successMessageKey, operation));
             return true;
         }
 
@@ -93,37 +110,43 @@ public final class IslandTeleportHelper {
                     + " 至 " + formatWorldLoc(dest));
         }
 
-        player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN)
-                .whenComplete((success, throwable) -> {
-                    Runnable finish = () -> {
-                        if (!player.isOnline()) {
-                            return;
+        try {
+            player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN)
+                    .whenComplete((success, throwable) -> {
+                        Runnable finish = () -> {
+                            if (!player.isOnline()) {
+                                return;
+                            }
+                            if (throwable != null) {
+                                plugin.getDiagnosticService().reportTeleportFailure(operation, player,
+                                        destination, "teleportAsync 以例外結束（completed exceptionally）",
+                                        throwable);
+                                plugin.getMessageManager().send(player, "island.teleport-failed");
+                                return;
+                            }
+                            if (!Boolean.TRUE.equals(success)) {
+                                plugin.getDiagnosticService().reportTeleportFailure(operation, player,
+                                        destination, "teleportAsync 回傳 false（傳送被拒絕，可能被其他插件取消或目標區塊不可用）",
+                                        null);
+                                plugin.getMessageManager().send(player, "island.teleport-failed");
+                                return;
+                            }
+                            if (successMessageKey != null) {
+                                plugin.getMessageManager().send(player, successMessageKey);
+                            }
+                        };
+                        if (Bukkit.isPrimaryThread()) {
+                            finish.run();
+                        } else {
+                            Bukkit.getScheduler().runTask(plugin, finish);
                         }
-                        if (throwable != null) {
-                            plugin.getLogger().log(Level.WARNING,
-                                    "空島傳送例外：玩家=" + player.getName()
-                                            + " 目的地=" + formatWorldLoc(destination),
-                                    throwable);
-                            plugin.getMessageManager().send(player, "island.teleport-failed");
-                            return;
-                        }
-                        if (!Boolean.TRUE.equals(success)) {
-                            plugin.getLogger().warning("空島傳送被拒絕：玩家=" + player.getName()
-                                    + " 目的地=" + formatWorldLoc(destination)
-                                    + " 目前位置=" + formatWorldLoc(player.getLocation()));
-                            plugin.getMessageManager().send(player, "island.teleport-failed");
-                            return;
-                        }
-                        if (successMessageKey != null) {
-                            plugin.getMessageManager().send(player, successMessageKey);
-                        }
-                    };
-                    if (Bukkit.isPrimaryThread()) {
-                        finish.run();
-                    } else {
-                        Bukkit.getScheduler().runTask(plugin, finish);
-                    }
-                });
+                    });
+        } catch (RuntimeException e) {
+            plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+                    "發起 teleportAsync 時拋出例外", e);
+            plugin.getMessageManager().send(player, "island.teleport-failed");
+            return false;
+        }
         return true;
     }
 

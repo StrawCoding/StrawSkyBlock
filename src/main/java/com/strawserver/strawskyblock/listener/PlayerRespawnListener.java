@@ -84,12 +84,21 @@ public class PlayerRespawnListener implements Listener {
             if (!player.isOnline()) {
                 return;
             }
-            Location destination = home.getWorld() != null ? home : resolveHome(player);
-            if (destination == null || destination.getWorld() == null) {
-                plugin.getLogger().warning("空島重生傳送失敗：家點不可用（玩家=" + player.getName() + "）");
-                return;
+            try {
+                Location destination = home.getWorld() != null ? home : resolveHome(player);
+                if (destination == null || destination.getWorld() == null) {
+                    plugin.getDiagnosticService().reportTeleportFailure(
+                            "respawn-home-teleport", player, destination,
+                            "重生後家點不可用（home 或其所在世界為 null）", null);
+                    return;
+                }
+                IslandTeleportHelper.teleportPlayer(plugin, player, destination, null,
+                        "respawn-home-teleport");
+            } catch (RuntimeException e) {
+                plugin.getDiagnosticService().reportTeleportFailure(
+                        "respawn-home-teleport", player, home,
+                        "重生後排程傳送時拋出例外", e);
             }
-            IslandTeleportHelper.teleportPlayer(plugin, player, destination, null);
         });
     }
 
