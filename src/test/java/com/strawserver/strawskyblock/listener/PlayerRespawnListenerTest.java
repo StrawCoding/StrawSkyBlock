@@ -2,6 +2,7 @@ package com.strawserver.strawskyblock.listener;
 
 import org.junit.jupiter.api.Test;
 
+import static com.strawserver.strawskyblock.listener.PlayerRespawnListener.shouldPrepareChunksForIslandHomeRespawn;
 import static com.strawserver.strawskyblock.listener.PlayerRespawnListener.shouldRedirectToIslandHome;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,5 +46,15 @@ class PlayerRespawnListenerTest {
         // 只缺其中一項即不重導向。
         assertFalse(shouldRedirectToIslandHome(false, false, false, false));
         assertFalse(shouldRedirectToIslandHome(true, true, true, true));
+    }
+
+    @Test
+    void chunkPreloadDecisionMatchesRedirectDecision() {
+        // 重生區塊預載僅在會重導向至家點時觸發，避免影響床／錨或主世界重生。
+        assertTrue(shouldPrepareChunksForIslandHomeRespawn(true, true, true, false));
+        assertFalse(shouldPrepareChunksForIslandHomeRespawn(false, true, true, false));
+        assertFalse(shouldPrepareChunksForIslandHomeRespawn(true, false, true, false));
+        assertFalse(shouldPrepareChunksForIslandHomeRespawn(true, true, false, false));
+        assertFalse(shouldPrepareChunksForIslandHomeRespawn(true, true, true, true));
     }
 }
