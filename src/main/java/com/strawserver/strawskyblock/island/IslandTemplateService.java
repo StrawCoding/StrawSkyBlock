@@ -1,6 +1,7 @@
 package com.strawserver.strawskyblock.island;
 
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
+import com.strawserver.strawskyblock.util.IslandTeleportHelper;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -64,11 +65,13 @@ public class IslandTemplateService {
         int offsetX = plugin.getConfigManager().getSpawnOffsetX();
         int offsetY = plugin.getConfigManager().getSpawnOffsetY();
         int offsetZ = plugin.getConfigManager().getSpawnOffsetZ();
-        return new Location(world,
+        Location home = new Location(world,
                 centerX + offsetX + 0.5,
                 islandY + offsetY,
                 centerZ + offsetZ + 0.5,
                 0F, 0F);
+        IslandTeleportHelper.ensureChunksLoaded(world, home, IslandTeleportHelper.DEFAULT_CHUNK_RADIUS);
+        return home;
     }
 
     private void fillStarterChest(Inventory inv) {

@@ -2,6 +2,7 @@ package com.strawserver.strawskyblock.island;
 
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
 import com.strawserver.strawskyblock.config.MessageManager;
+import com.strawserver.strawskyblock.util.IslandTeleportHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -134,8 +135,7 @@ public class IslandService {
                     island.setHome(home);
                     cache.add(island);
                     if (player.isOnline()) {
-                        player.teleportAsync(home);
-                        msg(player, "island.created");
+                        IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.created");
                     }
                     // home 已由模板計算，更新回資料庫（非阻塞）
                     runAsync(() -> {
@@ -166,8 +166,7 @@ public class IslandService {
             msg(player, "island.create-failed");
             return;
         }
-        player.teleportAsync(home);
-        msg(player, "island.teleport-home");
+        IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.teleport-home");
     }
 
     public void setHome(Player player) {
@@ -205,7 +204,7 @@ public class IslandService {
         }
         Location home = island.getHomeLocation();
         if (home != null) {
-            player.teleportAsync(home);
+            IslandTeleportHelper.teleportPlayer(plugin, player, home, null);
             msg(player, "visit.teleported", MessageManager.placeholders("player", island.getOwnerName()));
         }
     }
@@ -233,7 +232,7 @@ public class IslandService {
         World main = Bukkit.getWorlds().get(0);
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (island.contains(online.getLocation())) {
-                online.teleportAsync(main.getSpawnLocation());
+                IslandTeleportHelper.teleportPlayer(plugin, online, main.getSpawnLocation(), null);
             }
         }
         runAsync(() -> {
@@ -255,9 +254,10 @@ public class IslandService {
             if (player.isOnline()) {
                 Location home = island.getHomeLocation();
                 if (home != null) {
-                    player.teleportAsync(home);
+                    IslandTeleportHelper.teleportPlayer(plugin, player, home, "island.reset");
+                } else {
+                    msg(player, "island.reset");
                 }
-                msg(player, "island.reset");
             }
         });
     }

@@ -9,6 +9,7 @@ import com.strawserver.strawskyblock.gui.IslandMainGui;
 import com.strawserver.strawskyblock.gui.IslandMemberGui;
 import com.strawserver.strawskyblock.gui.IslandSettingsGui;
 import com.strawserver.strawskyblock.island.Island;
+import com.strawserver.strawskyblock.util.IslandTeleportHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -500,7 +501,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (island.getHomeLocation() != null) {
-            player.teleportAsync(island.getHomeLocation());
+            IslandTeleportHelper.teleportPlayer(plugin, player, island.getHomeLocation(), null);
             plugin.getMessageManager().send(sender, "admin.tp-done",
                     MessageManager.placeholders("player", args[2]));
         }

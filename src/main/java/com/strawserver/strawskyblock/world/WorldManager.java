@@ -58,8 +58,10 @@ public class WorldManager {
         world.setGameRule(GameRule.RANDOM_TICK_SPEED, 3);
         world.setGameRule(GameRule.DO_FIRE_TICK, true);
         world.setSpawnFlags(false, true);
-        world.setKeepSpawnInMemory(false);
+        // 虛空空島世界在跨維度傳送時會先進入世界出生區塊；必須保持載入，否則客戶端易卡在「載入地形」。
+        world.setKeepSpawnInMemory(true);
         ensureSafeWorldSpawn(world);
+        ensureSpawnChunksLoaded(world);
     }
 
     /**
@@ -74,6 +76,14 @@ public class WorldManager {
             }
         }
         world.setSpawnLocation(new Location(world, 0.5, y, 0.5));
+    }
+
+    /**
+     * 啟動時預載世界出生區塊，避免首位跨世界進入的玩家在維度切換時等待虛空出生點生成。
+     */
+    private void ensureSpawnChunksLoaded(World world) {
+        Location spawn = world.getSpawnLocation();
+        world.getChunkAt(spawn);
     }
 
     public World getIslandWorld() {
