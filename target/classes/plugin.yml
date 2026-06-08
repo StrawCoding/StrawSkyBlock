@@ -1,5 +1,5 @@
 name: StrawSkyBlock
-version: '1.0.7'
+version: '1.0.8'
 main: com.strawserver.strawskyblock.StrawSkyBlockPlugin
 api-version: '1.21'
 author: StrawServer

@@ -14,6 +14,18 @@ diagnostics:
   # 例外堆疊保留的行數上限（避免再次淹沒日誌）。
   stack-frames: 8
 
+# 客戶端同步安全傳送：玩家「傳送到空島」（主世界 → 空島世界）時，伺服器端常回報成功但客戶端
+# 仍卡在「載入地形」。以下設定提供跨世界進入時的區塊票證、延遲重新同步與成功後驗證機制。
+teleport:
+  # 跨世界進入空島世界後，是否延遲對相同座標重新同步一次，強制重送座標／區塊封包。
+  resync-enabled: true
+  # 傳送完成後多少 tick 執行重新同步（20 tick = 1 秒）。
+  resync-delay-ticks: 20
+  # 重新同步後多少 tick 進行成功後狀態驗證；若仍為可疑狀態則輸出 [錯誤診斷] 區塊。
+  verify-delay-ticks: 40
+  # 跨世界傳送期間是否於落點加上 plugin chunk ticket，確保整個傳送 + 驗證視窗區塊保持載入。
+  chunk-ticket: true
+
 # 在空島世界內攔截 /spawn（HuskHomes），改走 Paper-safe 的 chunk 同步傳送，避免客戶端卡在「載入地形」。
 spawn-intercept:
   enabled: true

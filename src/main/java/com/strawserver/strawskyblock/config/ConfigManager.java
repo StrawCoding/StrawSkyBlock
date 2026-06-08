@@ -87,6 +87,27 @@ public class ConfigManager {
         return Math.max(1, config.getInt("diagnostics.stack-frames", 8));
     }
 
+    // ---- teleport (客戶端同步安全傳送) ----
+    /** 跨世界進入空島世界後，是否延遲重新同步座標／區塊，避免客戶端卡在「載入地形」。 */
+    public boolean isTeleportResyncEnabled() {
+        return config.getBoolean("teleport.resync-enabled", true);
+    }
+
+    /** 傳送完成後多少 tick 執行重新同步（20 tick = 1 秒）。 */
+    public long getTeleportResyncDelayTicks() {
+        return Math.max(0L, config.getLong("teleport.resync-delay-ticks", 20L));
+    }
+
+    /** 重新同步後多少 tick 進行成功後狀態驗證；仍可疑則輸出診斷。 */
+    public long getTeleportVerifyDelayTicks() {
+        return Math.max(1L, config.getLong("teleport.verify-delay-ticks", 40L));
+    }
+
+    /** 跨世界傳送期間是否於落點加上區塊票證，確保區塊保持載入並送達客戶端。 */
+    public boolean isTeleportChunkTicket() {
+        return config.getBoolean("teleport.chunk-ticket", true);
+    }
+
     // ---- spawn intercept (/spawn from island world) ----
     public boolean isSpawnInterceptEnabled() {
         return config.getBoolean("spawn-intercept.enabled", true);
