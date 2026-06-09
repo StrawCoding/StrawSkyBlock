@@ -92,8 +92,9 @@ public class VoidProtectionListener implements Listener {
 
     private boolean isInIslandWorld(Player player) {
         World world = player.getWorld();
+        // v1.0.28：主世界與下界空島世界皆納入虛空防護，避免下界尚未生成地形時掉入虛空致死。
         return world != null
-                && world.getName().equals(plugin.getConfigManager().getIslandWorld());
+                && plugin.getConfigManager().isIslandWorld(world.getName());
     }
 
     private Location resolveDestination(Player player) {

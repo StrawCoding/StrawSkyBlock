@@ -51,6 +51,42 @@ public class WorldManager {
         return world;
     }
 
+    /**
+     * 確保下界虛空世界存在（v1.0.28，下界獨立空島模式），必須在主執行緒呼叫。
+     * 未啟用時回傳 null。
+     */
+    public World loadOrCreateNetherWorld() {
+        if (!plugin.getConfigManager().isNetherEnabled()) {
+            return null;
+        }
+        String worldName = plugin.getConfigManager().getNetherWorld();
+        World existing = Bukkit.getWorld(worldName);
+        if (existing != null) {
+            applyWorldSettings(existing);
+            return existing;
+        }
+        WorldCreator creator = new WorldCreator(worldName);
+        creator.environment(World.Environment.NETHER);
+        if (plugin.getConfigManager().isVoidGenerator()) {
+            creator.generator(generator);
+        }
+        World world = creator.createWorld();
+        if (world != null) {
+            applyWorldSettings(world);
+            plugin.getLogger().info("下界空島世界已載入：" + worldName);
+        } else {
+            plugin.getLogger().severe("無法建立下界空島世界：" + worldName);
+        }
+        return world;
+    }
+
+    public World getNetherWorld() {
+        if (!plugin.getConfigManager().isNetherEnabled()) {
+            return null;
+        }
+        return Bukkit.getWorld(plugin.getConfigManager().getNetherWorld());
+    }
+
     private void applyWorldSettings(World world) {
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);

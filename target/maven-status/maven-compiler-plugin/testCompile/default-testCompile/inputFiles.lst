@@ -13,3 +13,4 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/util/ServerSpawnResolverTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/util/SpawnCommandParserTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/util/TeleportActivityTrackerTest.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/world/NetherPortalRouterTest.java

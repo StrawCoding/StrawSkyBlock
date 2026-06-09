@@ -17,6 +17,7 @@ import com.strawserver.strawskyblock.listener.BlockPlaceListener;
 import com.strawserver.strawskyblock.listener.CreatureSpawnListener;
 import com.strawserver.strawskyblock.listener.EntityDamageListener;
 import com.strawserver.strawskyblock.listener.InventoryClickListener;
+import com.strawserver.strawskyblock.listener.NetherPortalListener;
 import com.strawserver.strawskyblock.listener.PlayerInteractListener;
 import com.strawserver.strawskyblock.listener.PlayerJoinListener;
 import com.strawserver.strawskyblock.listener.PlayerRespawnListener;
@@ -84,6 +85,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
         this.worldManager = new WorldManager(this);
         this.worldManager.loadOrCreateIslandWorld();
+        this.worldManager.loadOrCreateNetherWorld();
 
         this.islandService = new IslandService(this);
         this.protectionService = new ProtectionService(this);
@@ -155,6 +157,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         pm.registerEvents(new SpawnCommandListener(this), this);
         pm.registerEvents(new WorldProtectionListener(this), this);
         pm.registerEvents(new VoidProtectionListener(this), this);
+        pm.registerEvents(new NetherPortalListener(this), this);
         pm.registerEvents(new RobotEntityListener(this), this);
         pm.registerEvents(teleportActivityTracker, this);
     }
@@ -183,8 +186,10 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     @Override
     public @Nullable ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, @Nullable String id) {
-        if (configManager != null && worldManager != null
-                && worldName.equals(configManager.getIslandWorld()) && configManager.isVoidGenerator()) {
+        if (configManager != null && worldManager != null && configManager.isVoidGenerator()
+                && (worldName.equals(configManager.getIslandWorld())
+                        || (configManager.isNetherEnabled()
+                                && worldName.equals(configManager.getNetherWorld())))) {
             return worldManager.getGenerator();
         }
         return null;

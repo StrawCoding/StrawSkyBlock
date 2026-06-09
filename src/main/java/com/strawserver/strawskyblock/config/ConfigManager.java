@@ -267,6 +267,40 @@ public class ConfigManager {
         return config.getInt("world.island-y", 100);
     }
 
+    /**
+     * 是否啟用下界（地獄）獨立空島模式（v1.0.28）。
+     */
+    public boolean isNetherEnabled() {
+        return config.getBoolean("world.nether-enabled", true);
+    }
+
+    /**
+     * 下界虛空世界名稱（NETHER 環境）。
+     */
+    public String getNetherWorld() {
+        return config.getString("world.nether-world", "straw_skyblock_world_nether");
+    }
+
+    /**
+     * 玩家經由傳送門抵達下界落點時，是否自動鋪設基岩安全平台避免掉入虛空。
+     */
+    public boolean isNetherSafePlatform() {
+        return config.getBoolean("world.nether-safe-platform", true);
+    }
+
+    /**
+     * 判斷某世界是否屬於本插件管轄的空島世界（主世界，或啟用時的下界世界）。
+     */
+    public boolean isIslandWorld(String worldName) {
+        if (worldName == null) {
+            return false;
+        }
+        if (worldName.equals(getIslandWorld())) {
+            return true;
+        }
+        return isNetherEnabled() && worldName.equals(getNetherWorld());
+    }
+
     // ---- island ----
     public int getMaxIslandsPerPlayer() {
         return config.getInt("island.max-islands-per-player", 1);

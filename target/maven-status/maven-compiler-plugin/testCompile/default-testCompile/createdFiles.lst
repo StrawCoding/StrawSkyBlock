@@ -1,6 +1,7 @@
 com/strawserver/strawskyblock/diagnostic/DiagnosticReportTest.class
 com/strawserver/strawskyblock/robot/RobotPurchaseTest.class
 com/strawserver/strawskyblock/util/MiniMessageUtilTest.class
+com/strawserver/strawskyblock/world/NetherPortalRouterTest.class
 com/strawserver/strawskyblock/robot/RobotLevelsTest.class
 com/strawserver/strawskyblock/robot/RobotLimitTest.class
 com/strawserver/strawskyblock/robot/RobotScanAreaTest.class

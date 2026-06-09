@@ -87,6 +87,14 @@ world:
   island-spacing: 1000
   island-size: 200
   island-y: 100
+  # v1.0.28 下界（地獄）獨立空島模式：每座島擁有與主世界相同座標的專屬下界區域。
+  #   走原本的下界傳送門（NETHER_PORTAL）會自動 1:1 對應導向，不套用原版 8 倍縮放。
+  nether-enabled: true
+  # 下界使用的虛空世界名稱（NETHER 環境）。
+  nether-world: straw_skyblock_world_nether
+  # 玩家首次經由傳送門抵達下界落點時，是否自動於落點下方鋪一小塊基岩安全平台，
+  #   避免「地形尚未生成」時一過傳送門就掉入虛空。關閉則為純虛空（玩家自理）。
+  nether-safe-platform: true
 
 island:
   max-islands-per-player: 1
