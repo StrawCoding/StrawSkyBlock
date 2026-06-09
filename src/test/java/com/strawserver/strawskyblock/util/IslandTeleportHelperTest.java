@@ -22,7 +22,6 @@ class IslandTeleportHelperTest {
 
     @Test
     void defaultChunkRadiusIsReasonableForPlayerView() {
-        // 3x3 區塊足以覆蓋單人傳送落點周圍的即時載入需求。
         assertEquals(1, IslandTeleportHelper.DEFAULT_CHUNK_RADIUS);
     }
 
@@ -30,25 +29,22 @@ class IslandTeleportHelperTest {
 
     @Test
     void healthyLandingIsNotSuspicious() {
-        // 仍在落點、區塊載入、下方有方塊：正常。
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(true, true, true, true, true);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, true, true, true);
         assertFalse(verdict.suspicious());
     }
 
     @Test
     void offlinePlayerIsNeverSuspicious() {
-        // 玩家已離線：無從驗證，且可能只是正常登出，不應誤報。
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(false, false, false, false, false);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                false, false, false, false, false, false, false, false);
         assertFalse(verdict.suspicious());
     }
 
     @Test
     void wrongWorldAfterSuccessIsSuspicious() {
-        // 回報成功卻不在目的地世界：典型的跨維度同步失敗（客戶端卡在載入地形）。
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(true, false, false, true, true);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, false, false, true, true, false, true, false);
         assertTrue(verdict.suspicious());
         assertNotNull(verdict.reason());
         assertTrue(verdict.reason().contains("目的地世界"));
@@ -56,36 +52,59 @@ class IslandTeleportHelperTest {
 
     @Test
     void playerWhoMovedAwayIsHealthyEvenWithUnloadedLandingChunk() {
-        // 玩家已離開落點代表能正常移動 / 已收到地形，即使落點區塊條件不佳也視為正常，降低誤報。
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(true, true, false, false, false);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, false, false, false, false, false, false);
         assertFalse(verdict.suspicious());
     }
 
     @Test
     void stuckAtLandingWithUnloadedChunkIsSuspicious() {
-        // 仍停在落點但落點區塊未載入：客戶端可能持續卡在載入地形。
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(true, true, true, false, true);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, false, true, true, true, true);
         assertTrue(verdict.suspicious());
         assertTrue(verdict.reason().contains("載入地形"));
     }
 
     @Test
     void stuckAtLandingWithoutGroundIsSuspicious() {
-        // 仍停在落點但下方無可站立方塊：有掉入虛空風險。
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(true, true, true, true, false);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, false, false, true, true);
         assertTrue(verdict.suspicious());
         assertTrue(verdict.reason().contains("虛空"));
     }
 
     @Test
+    void chunkNotSentToClientIsSuspicious() {
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, false, true, false);
+        assertTrue(verdict.suspicious());
+        assertTrue(verdict.reason().contains("isChunkSent"));
+    }
+
+    @Test
+    void airborneWithoutMovementNearSolidGroundIsSuspicious() {
+        // 模擬 live 證據：OnGround=0、y=64 附近有地面、玩家幾乎無位移。
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, false, true, true);
+        assertTrue(verdict.suspicious());
+        assertTrue(verdict.reason().contains("OnGround=0"));
+        assertTrue(verdict.reason().contains("載入地形"));
+    }
+
+    @Test
+    void airborneWithMovementIsNotSuspiciousWhenChunkSent() {
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, false, false, true);
+        assertFalse(verdict.suspicious());
+    }
+
+    @Test
     void multipleProblemsAreCombinedInReason() {
-        PostTeleportVerdict verdict =
-                IslandTeleportHelper.evaluatePostTeleport(true, true, true, false, false);
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, false, false, false, true, false);
         assertTrue(verdict.suspicious());
         assertTrue(verdict.reason().contains("載入地形"));
         assertTrue(verdict.reason().contains("虛空"));
+        assertTrue(verdict.reason().contains("isChunkSent"));
     }
 }

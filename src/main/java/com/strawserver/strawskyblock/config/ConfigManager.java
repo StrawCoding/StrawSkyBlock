@@ -108,6 +108,26 @@ public class ConfigManager {
         return config.getBoolean("teleport.chunk-ticket", true);
     }
 
+    /** 跨世界傳送後，延遲重新同步的次數（含第一次同座標重送）。 */
+    public int getTeleportResyncMaxAttempts() {
+        return Math.max(1, config.getInt("teleport.resync-max-attempts", 3));
+    }
+
+    /** 各次重新同步之間的間隔 tick。 */
+    public long getTeleportResyncIntervalTicks() {
+        return Math.max(1L, config.getLong("teleport.resync-interval-ticks", 10L));
+    }
+
+    /** 驗證仍可疑時，是否嘗試更強的卡住恢復（區塊重載 + 安全位移微調）。 */
+    public boolean isTeleportRecoveryEnabled() {
+        return config.getBoolean("teleport.recovery-enabled", true);
+    }
+
+    /** 卡住恢復後，再次驗證前等待的 tick。 */
+    public long getTeleportRecoveryReverifyDelayTicks() {
+        return Math.max(1L, config.getLong("teleport.recovery-reverify-delay-ticks", 20L));
+    }
+
     // ---- spawn intercept (/spawn from island world) ----
     public boolean isSpawnInterceptEnabled() {
         return config.getBoolean("spawn-intercept.enabled", true);
