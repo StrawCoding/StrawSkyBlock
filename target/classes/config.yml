@@ -37,6 +37,11 @@ teleport:
   # 開啟時：若驗證視窗內玩家仍停在落點且毫無客戶端活動，即判定為「伺服器正常但客戶端卡在載入地形」，
   # 觸發卡住恢復；恢復後仍無動靜則輸出繁體中文診斷（不會無限重送，恢復為有界一次）。
   client-ack-required: true
+  # v1.0.11：卡住恢復後驗證仍可疑（跨世界）時，是否執行最終有界處置：強制重新連線（kick）。
+  # 用於伺服器端已到位、區塊已送達，但客戶端維度交握仍凍結（OnGround=0、無位移、卡在載入地形）的剩餘案例。
+  final-fallback-kick-enabled: true
+  # 最終恢復 kick 時顯示給玩家的繁體中文訊息（MiniMessage 格式，不含插件前綴）。
+  final-fallback-kick-message: "<yellow>偵測到跨世界傳送後客戶端維度交握未完成（畫面可能卡在「載入地形」）。</yellow><newline><gray>已為您執行安全重新連線，請重新登入後再試。</gray>"
 
 # 在空島世界內攔截 /spawn（HuskHomes），改走 Paper-safe 的 chunk 同步傳送，避免客戶端卡在「載入地形」。
 spawn-intercept:

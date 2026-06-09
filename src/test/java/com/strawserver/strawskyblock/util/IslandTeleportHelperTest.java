@@ -1,6 +1,7 @@
 package com.strawserver.strawskyblock.util;
 
 import com.strawserver.strawskyblock.util.IslandTeleportHelper.PostTeleportVerdict;
+import com.strawserver.strawskyblock.util.ServerSpawnResolver;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -138,5 +139,53 @@ class IslandTeleportHelperTest {
         PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
                 true, true, true, true, true, true, true, true, true);
         assertFalse(verdict.suspicious());
+    }
+
+    // ---- v1.0.11：卡住恢復後仍可疑 → 最終 kick 回退 ----
+
+    @Test
+    void finalFallbackKickTriggersOnlyForCrossWorldPostRecoverySuspicious() {
+        assertTrue(IslandTeleportHelper.shouldPerformFinalFallbackKick(true, true, true));
+        assertFalse(IslandTeleportHelper.shouldPerformFinalFallbackKick(false, true, true));
+        assertFalse(IslandTeleportHelper.shouldPerformFinalFallbackKick(true, false, true));
+        assertFalse(IslandTeleportHelper.shouldPerformFinalFallbackKick(true, true, false));
+    }
+
+    @Test
+    void spawnFromIslandOnGroundFalseNoMovementIsEligibleForFinalFallback() {
+        // 重現 2026-06-09 live 案例：/spawn 從 straw_skyblock_world 至 world，
+        // sameWorld=true nearDestination=true chunkLoaded=true clientChunkSent=true
+        // onGround=false noMovement=true groundBelow=true clientActivity=true => 可疑。
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, false, true, true, true);
+        assertTrue(verdict.suspicious());
+        assertTrue(verdict.reason().contains("OnGround=0"));
+        assertTrue(IslandTeleportHelper.shouldPerformFinalFallbackKick(
+                true, verdict.suspicious(), true));
+    }
+
+    @Test
+    void sameWorldRecoverySuspiciousDoesNotTriggerFinalFallbackKick() {
+        // 同世界傳送（例如主世界內短距）不應觸發跨世界最終 kick，避免回歸。
+        PostTeleportVerdict verdict = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, false, true, true, true);
+        assertTrue(verdict.suspicious());
+        assertFalse(IslandTeleportHelper.shouldPerformFinalFallbackKick(
+                false, verdict.suspicious(), true));
+    }
+
+    @Test
+    void postRecoveryDiagnosticReasonDocumentsKickFallback() {
+        PostTeleportVerdict verdict = PostTeleportVerdict.suspicious(
+                "伺服器端實體未著地（OnGround=0）且傳送後幾乎無位移（疑似客戶端維度交握未完成，仍卡在載入地形）");
+        String reason = IslandTeleportHelper.buildPostRecoveryDiagnosticReason(verdict);
+        assertTrue(reason.contains("卡住恢復後驗證仍可疑"));
+        assertTrue(reason.contains("OnGround=0"));
+        assertTrue(reason.contains(IslandTeleportHelper.FINAL_FALLBACK_DIAGNOSTIC_SUFFIX));
+    }
+
+    @Test
+    void spawnFromIslandOperationConstantIsStable() {
+        assertEquals("spawn-from-island-teleport", ServerSpawnResolver.OPERATION);
     }
 }

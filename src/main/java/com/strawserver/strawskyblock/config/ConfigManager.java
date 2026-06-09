@@ -137,6 +137,20 @@ public class ConfigManager {
         return config.getBoolean("teleport.client-ack-required", true);
     }
 
+    /**
+     * 卡住恢復後驗證仍可疑（跨世界）時，是否執行最終有界處置：強制重新連線（kick）。
+     */
+    public boolean isTeleportFinalFallbackKickEnabled() {
+        return config.getBoolean("teleport.final-fallback-kick-enabled", true);
+    }
+
+    /** 最終恢復 kick 時顯示給玩家的繁體中文訊息（MiniMessage 格式）。 */
+    public String getTeleportFinalFallbackKickMessage() {
+        return config.getString("teleport.final-fallback-kick-message",
+                "<yellow>偵測到跨世界傳送後客戶端維度交握未完成（畫面可能卡在「載入地形」）。</yellow>"
+                        + "<newline><gray>已為您執行安全重新連線，請重新登入後再試。</gray>");
+    }
+
     // ---- spawn intercept (/spawn from island world) ----
     public boolean isSpawnInterceptEnabled() {
         return config.getBoolean("spawn-intercept.enabled", true);

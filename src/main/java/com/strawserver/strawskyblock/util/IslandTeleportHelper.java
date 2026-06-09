@@ -1,6 +1,7 @@
 package com.strawserver.strawskyblock.util;
 
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -42,8 +43,18 @@ import java.util.List;
  *       （移動／視角／互動／指令／背包／揮手）。停在落點且毫無客戶端活動 → 判定可疑。</li>
  *   <li><b>判定可觀察性</b>：debug 開啟時，即使判定為「正常」也會輸出完整判定狀態，消除黑箱。</li>
  * </ol>
+ *
+ * <p>v1.0.11 補強（空島 /spawn 離島仍凍結）：實測顯示跨世界傳送後，伺服器端可能全部正常
+ * （同世界、近落點、區塊已載入、{@code isChunkSent=true}、甚至有客戶端活動），但 {@code OnGround=0}
+ * 且幾乎無位移，Y 微調／區塊重載恢復仍無法讓客戶端完成維度交握。此時僅輸出診斷無法脫困；
+ * 因此在<b>有界卡住恢復後再驗證仍可疑</b>時，可選擇執行最終處置：強制重新連線（kick），
+ * 以重置客戶端維度狀態（與管理員手動 kick 後恢復正常一致）。</p>
  */
 public final class IslandTeleportHelper {
+
+    /** 最終恢復（kick）寫入診斷報告時的後綴說明。 */
+    public static final String FINAL_FALLBACK_DIAGNOSTIC_SUFFIX =
+            "已執行最終恢復：強制重新連線以重置客戶端維度交握（kick）";
 
     /** 以傳送點為中心預載的區塊半徑（含中心 = (2r+1)^2 個區塊）。 */
     public static final int DEFAULT_CHUNK_RADIUS = 1;
@@ -326,7 +337,8 @@ public final class IslandTeleportHelper {
                     PostTeleportVerdict retry = collectPostTeleportVerdict(plugin, player, destination,
                             anchor, crossWorld);
                     if (retry.suspicious()) {
-                        reportSuspiciousVerdict(plugin, player, destination, operation, retry);
+                        handlePostRecoveryStillSuspicious(plugin, player, destination, operation,
+                                retry, crossWorld);
                     }
                 } finally {
                     endActivitySession(plugin, player);
@@ -344,6 +356,51 @@ public final class IslandTeleportHelper {
         if (tracker != null && player != null) {
             tracker.endSession(player.getUniqueId());
         }
+    }
+
+    /**
+     * 卡住恢復後再驗證仍可疑時的最終處置：可選強制重新連線（kick），否則僅輸出診斷。
+     */
+    private static void handlePostRecoveryStillSuspicious(StrawSkyBlockPlugin plugin,
+                                                          Player player,
+                                                          Location destination,
+                                                          String operation,
+                                                          PostTeleportVerdict verdict,
+                                                          boolean crossWorld) {
+        boolean kickEnabled = plugin.getConfigManager().isTeleportFinalFallbackKickEnabled();
+        if (shouldPerformFinalFallbackKick(crossWorld, verdict.suspicious(), kickEnabled)
+                && player.isOnline()) {
+            String diagnosticReason = buildPostRecoveryDiagnosticReason(verdict);
+            if (plugin.getConfigManager().isDebug()) {
+                plugin.getLogger().info("空島傳送最終恢復：玩家=" + player.getName()
+                        + " 於 " + formatWorldLoc(player.getLocation())
+                        + " 執行強制重新連線（原因：" + verdict.reason() + "）");
+            }
+            plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+                    diagnosticReason, null);
+            Component kickMessage = MiniMessageUtil.parse(
+                    plugin.getConfigManager().getTeleportFinalFallbackKickMessage());
+            player.kick(kickMessage);
+            return;
+        }
+        reportSuspiciousVerdict(plugin, player, destination, operation, verdict);
+    }
+
+    /**
+     * 是否應在卡住恢復後仍可疑時執行最終 kick（純邏輯，可單元測試）。
+     */
+    public static boolean shouldPerformFinalFallbackKick(boolean crossWorld,
+                                                         boolean stillSuspicious,
+                                                         boolean kickEnabled) {
+        return crossWorld && stillSuspicious && kickEnabled;
+    }
+
+    /**
+     * 組合卡住恢復後仍可疑時寫入診斷的完整原因（純字串，可單元測試）。
+     */
+    public static String buildPostRecoveryDiagnosticReason(PostTeleportVerdict verdict) {
+        String base = verdict != null && verdict.reason() != null ? verdict.reason() : "未知原因";
+        return "卡住恢復後驗證仍可疑：" + base + "；" + FINAL_FALLBACK_DIAGNOSTIC_SUFFIX;
     }
 
     private static void reportSuspiciousVerdict(StrawSkyBlockPlugin plugin,
