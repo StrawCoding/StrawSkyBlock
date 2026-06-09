@@ -54,8 +54,13 @@ public class RobotEntityListener implements Listener {
 
     /**
      * 機器人盔甲架不受一般傷害；若是玩家左鍵攻擊，則視為「拿起」收回背包。
+     *
+     * <p>必須以 {@code ignoreCancelled = false} 且最早優先序（LOWEST）處理：盔甲架設為 invulnerable，
+     * 玩家左鍵攻擊時 {@link EntityDamageByEntityEvent} 會因「無敵」被預先標記為已取消；
+     * 另一個 {@link EntityDamageListener}（保護判定）也可能先行取消。若沿用 {@code ignoreCancelled = true}，
+     * 本處理會被略過，導致擁有者左鍵完全無法拿取（治本：不論是否已被取消都接手，並由本處理統一取消事件）。</p>
      */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
         if (!plugin.getRobotService().isRobotStand(entity)) {
