@@ -125,6 +125,7 @@ public class DatabaseManager {
                     origin_x INT NOT NULL,
                     origin_y INT NOT NULL,
                     origin_z INT NOT NULL,
+                    yaw FLOAT NOT NULL DEFAULT 0,
                     chest_x INT NULL,
                     chest_y INT NULL,
                     chest_z INT NULL,
@@ -142,6 +143,27 @@ public class DatabaseManager {
              Statement statement = connection.createStatement()) {
             for (String sql : statements) {
                 statement.execute(sql);
+            }
+        }
+        runMigrations();
+    }
+
+    /**
+     * 對既有資料表執行相容性欄位補齊。重複執行為冪等（已存在的欄位會被忽略）。
+     */
+    private void runMigrations() throws SQLException {
+        addColumnIfMissing("straw_skyblock_robots", "yaw", "FLOAT NOT NULL DEFAULT 0");
+    }
+
+    private void addColumnIfMissing(String table, String column, String definition) throws SQLException {
+        try (Connection connection = getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+            plugin.getLogger().info("資料表 " + table + " 已新增欄位 " + column + "。");
+        } catch (SQLException e) {
+            // 1060 = duplicate column：欄位已存在，視為已完成遷移。
+            if (e.getErrorCode() != 1060) {
+                throw e;
             }
         }
     }

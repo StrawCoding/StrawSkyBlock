@@ -129,7 +129,8 @@ public class RobotService {
 
     private void spawnStand(World world, Robot robot) {
         Location loc = new Location(world,
-                robot.getOriginX() + 0.5, robot.getOriginY(), robot.getOriginZ() + 0.5);
+                robot.getOriginX() + 0.5, robot.getOriginY(), robot.getOriginZ() + 0.5,
+                robot.getYaw(), 0f);
         world.spawn(loc, ArmorStand.class, stand -> {
             stand.setSmall(true);
             stand.setArms(true);
@@ -148,7 +149,7 @@ public class RobotService {
                 equipment.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
                 equipment.setItemInMainHand(new ItemStack(Material.NETHERITE_PICKAXE));
             }
-            stand.setRotation(0f, 0f);
+            stand.setRotation(robot.getYaw(), 0f);
         });
     }
 
@@ -275,16 +276,16 @@ public class RobotService {
     public Robot createRobot(Island island, UUID ownerUuid, int originX, int originY, int originZ) {
         return createRobot(island, ownerUuid, originX, originY, originZ,
                 plugin.getConfigManager().getRobotDefaultSpeedLevel(),
-                plugin.getConfigManager().getRobotDefaultLengthLevel());
+                plugin.getConfigManager().getRobotDefaultLengthLevel(), 0f);
     }
 
     public Robot createRobot(Island island, UUID ownerUuid, int originX, int originY, int originZ,
-                             int speedLevel, int lengthLevel) {
+                             int speedLevel, int lengthLevel, float yaw) {
         Robot robot = new Robot(island.getIslandUuid(), ownerUuid, island.getWorldName(),
                 originX, originY, originZ, null, null, null,
                 levels.clampLevel(speedLevel),
                 levels.clampLevel(lengthLevel),
-                false);
+                false, yaw);
         robotsByIsland.put(island.getIslandUuid(), robot);
         saveAsync(robot);
         ensureArmorStand(robot);

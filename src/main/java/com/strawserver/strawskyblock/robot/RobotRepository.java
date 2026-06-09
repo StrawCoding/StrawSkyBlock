@@ -46,7 +46,8 @@ public class RobotRepository {
                         chestX, chestY, chestZ,
                         rs.getInt("speed_level"),
                         rs.getInt("length_level"),
-                        rs.getBoolean("active"));
+                        rs.getBoolean("active"),
+                        rs.getFloat("yaw"));
                 result.add(robot);
             }
         }
@@ -58,12 +59,13 @@ public class RobotRepository {
      */
     public void save(Robot robot) throws SQLException {
         String sql = "INSERT INTO straw_skyblock_robots " +
-                "(island_uuid, owner_uuid, world_name, origin_x, origin_y, origin_z, " +
+                "(island_uuid, owner_uuid, world_name, origin_x, origin_y, origin_z, yaw, " +
                 "chest_x, chest_y, chest_z, speed_level, length_level, active) " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) " +
                 "ON DUPLICATE KEY UPDATE " +
                 "owner_uuid=VALUES(owner_uuid), world_name=VALUES(world_name), " +
                 "origin_x=VALUES(origin_x), origin_y=VALUES(origin_y), origin_z=VALUES(origin_z), " +
+                "yaw=VALUES(yaw), " +
                 "chest_x=VALUES(chest_x), chest_y=VALUES(chest_y), chest_z=VALUES(chest_z), " +
                 "speed_level=VALUES(speed_level), length_level=VALUES(length_level), active=VALUES(active)";
         try (Connection c = db().getConnection();
@@ -74,12 +76,13 @@ public class RobotRepository {
             ps.setInt(4, robot.getOriginX());
             ps.setInt(5, robot.getOriginY());
             ps.setInt(6, robot.getOriginZ());
-            setNullableInt(ps, 7, robot.getChestX());
-            setNullableInt(ps, 8, robot.getChestY());
-            setNullableInt(ps, 9, robot.getChestZ());
-            ps.setInt(10, robot.getSpeedLevel());
-            ps.setInt(11, robot.getLengthLevel());
-            ps.setBoolean(12, robot.isActive());
+            ps.setFloat(7, robot.getYaw());
+            setNullableInt(ps, 8, robot.getChestX());
+            setNullableInt(ps, 9, robot.getChestY());
+            setNullableInt(ps, 10, robot.getChestZ());
+            ps.setInt(11, robot.getSpeedLevel());
+            ps.setInt(12, robot.getLengthLevel());
+            ps.setBoolean(13, robot.isActive());
             ps.executeUpdate();
         }
     }

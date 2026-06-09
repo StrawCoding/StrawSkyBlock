@@ -196,8 +196,10 @@ public class RobotEntityListener implements Listener {
         }
         int speed = RobotItem.getSpeedLevel(plugin, inHand);
         int length = RobotItem.getLengthLevel(plugin, inHand);
+        // 小人面向放置玩家的當前朝向。
+        float yaw = player.getLocation().getYaw();
         plugin.getRobotService().createRobot(island, player.getUniqueId(),
-                target.getX(), target.getY(), target.getZ(), speed, length);
+                target.getX(), target.getY(), target.getZ(), speed, length, yaw);
         inHand.setAmount(inHand.getAmount() - 1);
         plugin.getMessageManager().send(player, "robot.placed",
                 MessageManager.placeholders(

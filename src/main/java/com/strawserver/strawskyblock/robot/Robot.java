@@ -17,6 +17,8 @@ public class Robot {
     private int originX;
     private int originY;
     private int originZ;
+    // 盔甲架小人面向（yaw），放置時記錄玩家當前方向。
+    private float yaw;
 
     // 連結箱子座標；尚未設定時為 null。
     private Integer chestX;
@@ -35,12 +37,21 @@ public class Robot {
                  int originX, int originY, int originZ,
                  Integer chestX, Integer chestY, Integer chestZ,
                  int speedLevel, int lengthLevel, boolean active) {
+        this(islandUuid, ownerUuid, worldName, originX, originY, originZ,
+                chestX, chestY, chestZ, speedLevel, lengthLevel, active, 0f);
+    }
+
+    public Robot(UUID islandUuid, UUID ownerUuid, String worldName,
+                 int originX, int originY, int originZ,
+                 Integer chestX, Integer chestY, Integer chestZ,
+                 int speedLevel, int lengthLevel, boolean active, float yaw) {
         this.islandUuid = islandUuid;
         this.ownerUuid = ownerUuid;
         this.worldName = worldName;
         this.originX = originX;
         this.originY = originY;
         this.originZ = originZ;
+        this.yaw = yaw;
         this.chestX = chestX;
         this.chestY = chestY;
         this.chestZ = chestZ;
@@ -81,6 +92,14 @@ public class Robot {
         this.originX = x;
         this.originY = y;
         this.originZ = z;
+    }
+
+    public float getYaw() {
+        return yaw;
+    }
+
+    public void setYaw(float yaw) {
+        this.yaw = yaw;
     }
 
     public boolean hasChest() {
