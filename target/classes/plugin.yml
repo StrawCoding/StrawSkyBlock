@@ -1,5 +1,5 @@
 name: StrawSkyBlock
-version: '1.0.29'
+version: '1.0.30'
 main: com.strawserver.strawskyblock.StrawSkyBlockPlugin
 api-version: '1.21'
 # v1.0.29：早於預設世界載入啟用，使虛空生成器能套用到原版世界（world/world_nether/world_the_end）。

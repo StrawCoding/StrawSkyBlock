@@ -21,6 +21,9 @@ import java.util.UUID;
  */
 public class IslandService {
 
+    /** 邀請有效秒數（由資料庫端 NOW() + INTERVAL 計算到期，避免時區不一致）。 */
+    private static final int INVITE_TTL_SECONDS = 120;
+
     private final StrawSkyBlockPlugin plugin;
     private final IslandRepository repository;
     private final IslandCache cache;
@@ -288,11 +291,10 @@ public class IslandService {
                     MessageManager.placeholders("player", target.getName()));
             return;
         }
-        long expires = System.currentTimeMillis() + 120_000L;
         runAsync(() -> {
             try {
                 repository.insertInvite(island.getIslandUuid(), owner.getUniqueId(),
-                        target.getUniqueId(), expires);
+                        target.getUniqueId(), INVITE_TTL_SECONDS);
                 runSync(() -> {
                     msg(owner, "members.invite-sent",
                             MessageManager.placeholders("player", target.getName()));

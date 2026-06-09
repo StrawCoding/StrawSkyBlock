@@ -8,7 +8,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -292,15 +291,26 @@ public class IslandRepository {
     }
 
     // ---- invites ----
-    public void insertInvite(UUID islandUuid, UUID inviter, UUID target, long expiresAtMillis) throws SQLException {
+    /**
+     * 建立邀請，並以資料庫端時間計算到期時間（{@code NOW() + INTERVAL ttlSeconds SECOND}）。
+     *
+     * <p>過去版本以 Java 端 {@code System.currentTimeMillis()+offset} 透過 {@code setTimestamp} 寫入，
+     * 但連線參數 {@code serverTimezone=UTC} 會對 Java {@code Timestamp} 做時區轉換，使存入的 expires_at
+     * 與查詢用的 MySQL {@code NOW()}（伺服器系統時區，本機為 UTC+8）不一致，導致邀請一發出即被視為過期。
+     * 改以資料庫端 {@code NOW()} 同時負責「寫入到期時間」與「查詢比較」，兩者同一連線／同一 session 時區，
+     * 徹底消除時區不一致問題。</p>
+     *
+     * @param ttlSeconds 邀請有效秒數
+     */
+    public void insertInvite(UUID islandUuid, UUID inviter, UUID target, int ttlSeconds) throws SQLException {
         String sql = "INSERT INTO straw_skyblock_invites (island_uuid, inviter_uuid, target_uuid, expires_at) " +
-                "VALUES (?,?,?,?)";
+                "VALUES (?,?,?, DATE_ADD(NOW(), INTERVAL ? SECOND))";
         try (Connection c = db().getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, islandUuid.toString());
             ps.setString(2, inviter.toString());
             ps.setString(3, target.toString());
-            ps.setTimestamp(4, new Timestamp(expiresAtMillis));
+            ps.setInt(4, Math.max(1, ttlSeconds));
             ps.executeUpdate();
         }
     }
