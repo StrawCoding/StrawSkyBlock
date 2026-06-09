@@ -26,6 +26,7 @@ com/strawserver/strawskyblock/island/Island.class
 com/strawserver/strawskyblock/gui/Gui.class
 com/strawserver/strawskyblock/generator/AnimalSpawnService.class
 com/strawserver/strawskyblock/util/ItemBuilder.class
+com/strawserver/strawskyblock/util/TeleportActivityTracker.class
 com/strawserver/strawskyblock/listener/PlayerJoinListener.class
 com/strawserver/strawskyblock/robot/RobotLevels.class
 com/strawserver/strawskyblock/util/ItemDisplayNames.class

@@ -128,6 +128,15 @@ public class ConfigManager {
         return Math.max(1L, config.getLong("teleport.recovery-reverify-delay-ticks", 20L));
     }
 
+    /**
+     * 跨世界傳送後，是否要求偵測到客戶端主動封包（移動／互動／指令／背包／揮手）
+     * 才視為交握完成。開啟時，若驗證視窗內玩家仍停在落點且未觀察到任何客戶端活動，
+     * 即判定為「伺服器狀態正常但客戶端未確認」（仍卡在載入地形），觸發恢復或診斷。
+     */
+    public boolean isTeleportClientAckRequired() {
+        return config.getBoolean("teleport.client-ack-required", true);
+    }
+
     // ---- spawn intercept (/spawn from island world) ----
     public boolean isSpawnInterceptEnabled() {
         return config.getBoolean("spawn-intercept.enabled", true);

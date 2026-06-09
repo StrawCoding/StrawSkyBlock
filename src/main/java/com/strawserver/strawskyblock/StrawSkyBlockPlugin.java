@@ -24,6 +24,7 @@ import com.strawserver.strawskyblock.listener.WorldProtectionListener;
 import com.strawserver.strawskyblock.placeholder.PlaceholderHook;
 import com.strawserver.strawskyblock.protection.ProtectionService;
 import com.strawserver.strawskyblock.robot.RobotService;
+import com.strawserver.strawskyblock.util.TeleportActivityTracker;
 import com.strawserver.strawskyblock.world.WorldManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.generator.ChunkGenerator;
@@ -53,6 +54,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
     private AnimalSpawnService animalSpawnService;
     private RobotService robotService;
     private EconomyHook economyHook;
+    private TeleportActivityTracker teleportActivityTracker;
 
     private final Set<UUID> bypassing = ConcurrentHashMap.newKeySet();
 
@@ -65,6 +67,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         this.messageManager.load();
 
         this.diagnosticService = new DiagnosticService(this);
+        this.teleportActivityTracker = new TeleportActivityTracker();
 
         this.databaseManager = new DatabaseManager(this);
         try {
@@ -146,6 +149,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         pm.registerEvents(new PlayerRespawnListener(this), this);
         pm.registerEvents(new SpawnCommandListener(this), this);
         pm.registerEvents(new WorldProtectionListener(this), this);
+        pm.registerEvents(teleportActivityTracker, this);
     }
 
     private void registerCommands() {
@@ -236,5 +240,9 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     public EconomyHook getEconomyHook() {
         return economyHook;
+    }
+
+    public TeleportActivityTracker getTeleportActivityTracker() {
+        return teleportActivityTracker;
     }
 }

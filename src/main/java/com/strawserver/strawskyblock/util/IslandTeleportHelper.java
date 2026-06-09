@@ -32,6 +32,16 @@ import java.util.List;
  *   <li><b>Paper 區塊送達檢查</b>：驗證時檢查 {@code isChunkSent}、{@code isOnGround} 與傳送後位移。</li>
  *   <li><b>卡住恢復</b>：驗證仍可疑時，預載區塊並以 Y 微調來回傳送 + {@code updateInventory} 嘗試脫困。</li>
  * </ol>
+ *
+ * <p>v1.0.10 補強（回到空島時的剩餘盲區）：實測顯示玩家以 {@code /is} 回到空島後，
+ * 伺服器端可能全部正常（同世界、近落點、{@code isChunkSent=true}、{@code OnGround=1}、腳下有地、
+ * 幾乎無位移），v1.0.9 因此判定為 OK，既不恢復也不產生診斷，導致客戶端仍卡在「載入地形」卻無從察覺。
+ * 因此新增：</p>
+ * <ol>
+ *   <li><b>客戶端交握偵測</b>：以 {@link TeleportActivityTracker} 於跨世界傳送後觀察客戶端主動封包
+ *       （移動／視角／互動／指令／背包／揮手）。停在落點且毫無客戶端活動 → 判定可疑。</li>
+ *   <li><b>判定可觀察性</b>：debug 開啟時，即使判定為「正常」也會輸出完整判定狀態，消除黑箱。</li>
+ * </ol>
  */
 public final class IslandTeleportHelper {
 
@@ -177,6 +187,10 @@ public final class IslandTeleportHelper {
                                 plugin.getMessageManager().send(player, successMessageKey);
                             }
                             Location anchor = player.getLocation().clone();
+                            if (crossWorld && plugin.getTeleportActivityTracker() != null) {
+                                // 自落點起開始觀察客戶端是否送出主動封包（用於驗證階段判定交握是否完成）。
+                                plugin.getTeleportActivityTracker().beginSession(player.getUniqueId());
+                            }
                             scheduleClientSyncSafeguard(plugin, player, destination, operation,
                                     crossWorld, heldTickets, anchor);
                         };
@@ -291,8 +305,10 @@ public final class IslandTeleportHelper {
                                          String operation,
                                          Location anchor,
                                          boolean crossWorld) {
-        PostTeleportVerdict verdict = collectPostTeleportVerdict(player, destination, anchor);
+        PostTeleportVerdict verdict = collectPostTeleportVerdict(plugin, player, destination, anchor,
+                crossWorld);
         if (!verdict.suspicious()) {
+            endActivitySession(plugin, player);
             return;
         }
 
@@ -303,17 +319,31 @@ public final class IslandTeleportHelper {
                         + " 嘗試強制重載區塊與位移微調（原因：" + verdict.reason() + "）");
             }
             performStuckRecovery(plugin, player, destination);
+            // 有界恢復：僅嘗試一次脫困後再驗證一次；仍可疑則輸出診斷，不會無限重送傳送。
             long reverifyDelay = plugin.getConfigManager().getTeleportRecoveryReverifyDelayTicks();
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                PostTeleportVerdict retry = collectPostTeleportVerdict(player, destination, anchor);
-                if (retry.suspicious()) {
-                    reportSuspiciousVerdict(plugin, player, destination, operation, retry);
+                try {
+                    PostTeleportVerdict retry = collectPostTeleportVerdict(plugin, player, destination,
+                            anchor, crossWorld);
+                    if (retry.suspicious()) {
+                        reportSuspiciousVerdict(plugin, player, destination, operation, retry);
+                    }
+                } finally {
+                    endActivitySession(plugin, player);
                 }
             }, reverifyDelay);
             return;
         }
 
         reportSuspiciousVerdict(plugin, player, destination, operation, verdict);
+        endActivitySession(plugin, player);
+    }
+
+    private static void endActivitySession(StrawSkyBlockPlugin plugin, Player player) {
+        TeleportActivityTracker tracker = plugin.getTeleportActivityTracker();
+        if (tracker != null && player != null) {
+            tracker.endSession(player.getUniqueId());
+        }
     }
 
     private static void reportSuspiciousVerdict(StrawSkyBlockPlugin plugin,
@@ -366,9 +396,11 @@ public final class IslandTeleportHelper {
         }
     }
 
-    private static PostTeleportVerdict collectPostTeleportVerdict(Player player,
+    private static PostTeleportVerdict collectPostTeleportVerdict(StrawSkyBlockPlugin plugin,
+                                                                  Player player,
                                                                   Location destination,
-                                                                  Location anchor) {
+                                                                  Location anchor,
+                                                                  boolean crossWorld) {
         boolean online = player.isOnline();
         World destWorld = destination.getWorld();
         Location current = online ? player.getLocation() : null;
@@ -385,9 +417,51 @@ public final class IslandTeleportHelper {
         boolean onGround = online && player.isOnGround();
         boolean clientChunkSent = online && destWorld != null
                 && isLandingChunkSentToClient(player, destination);
+        boolean clientActivityObserved = resolveClientActivityObserved(plugin, player, crossWorld);
 
-        return evaluatePostTeleport(online, sameWorld, nearDestination, chunkLoaded, groundBelow,
-                onGround, noMovementSinceLanding, clientChunkSent);
+        PostTeleportVerdict verdict = evaluatePostTeleport(online, sameWorld, nearDestination,
+                chunkLoaded, groundBelow, onGround, noMovementSinceLanding, clientChunkSent,
+                clientActivityObserved);
+
+        if (plugin.getConfigManager().isDebug()) {
+            // v1.0.10：即使判定為「正常」也輸出完整判定狀態，消除 v1.0.9 宣告 OK 時毫無線索的黑箱。
+            plugin.getLogger().info("空島傳送驗證判定：玩家=" + player.getName()
+                    + " 位置=" + formatWorldLoc(online ? player.getLocation() : null)
+                    + " 目的地=" + formatWorldLoc(destination)
+                    + "｜sameWorld=" + sameWorld
+                    + " nearDestination=" + nearDestination
+                    + " chunkLoaded=" + chunkLoaded
+                    + " clientChunkSent=" + clientChunkSent
+                    + " onGround=" + onGround
+                    + " noMovement=" + noMovementSinceLanding
+                    + " groundBelow=" + groundBelow
+                    + " clientActivity=" + clientActivityObserved
+                    + "（跨世界=" + crossWorld + "）"
+                    + " => " + (verdict.suspicious()
+                            ? "可疑（" + verdict.reason() + "）"
+                            : "正常"));
+        }
+        return verdict;
+    }
+
+    /**
+     * 解析「是否觀察到客戶端主動活動」。非跨世界傳送、追蹤器不可用或設定關閉時，
+     * 一律回傳 {@code true}（不以此條判定為卡住），避免誤報。
+     */
+    private static boolean resolveClientActivityObserved(StrawSkyBlockPlugin plugin,
+                                                         Player player,
+                                                         boolean crossWorld) {
+        if (!crossWorld) {
+            return true;
+        }
+        if (!plugin.getConfigManager().isTeleportClientAckRequired()) {
+            return true;
+        }
+        TeleportActivityTracker tracker = plugin.getTeleportActivityTracker();
+        if (tracker == null) {
+            return true;
+        }
+        return tracker.hasActivitySince(player.getUniqueId());
     }
 
     private static boolean isLandingChunkSentToClient(Player player, Location destination) {
@@ -399,7 +473,7 @@ public final class IslandTeleportHelper {
     }
 
     /**
-     * 純粹的成功後狀態判定邏輯，不依賴 Bukkit（除 isChunkSent 於呼叫端採集），方便單元測試。
+     * 純粹的成功後狀態判定邏輯，不依賴 Bukkit（除 isChunkSent／客戶端活動於呼叫端採集），方便單元測試。
      *
      * <p>判定原則（盡量降低誤報）：</p>
      * <ul>
@@ -407,8 +481,14 @@ public final class IslandTeleportHelper {
      *   <li>不在目的地世界 → 可疑（跨維度同步失敗）。</li>
      *   <li>已明顯離開落點 → 視為正常（玩家能移動代表未卡住）。</li>
      *   <li>仍停在落點：區塊未載入、Paper 回報區塊未送達客戶端、腳下無方塊、
-     *       或長時間未著地且幾乎無位移 → 可疑（客戶端可能仍卡在載入地形）。</li>
+     *       長時間未著地且幾乎無位移、
+     *       或<b>傳送後完全未觀察到客戶端主動封包</b> → 可疑（客戶端可能仍卡在載入地形）。</li>
      * </ul>
+     *
+     * <p>v1.0.10 新增 {@code clientActivityObserved}：這是唯一能正面證明客戶端已完成
+     * 維度交握的訊號。v1.0.9 的盲區在於即使伺服器端一切正常（OnGround=1、isChunkSent=true、
+     * 腳下有地），客戶端仍可能卡在「載入地形」而毫無回應；此時玩家停在落點且未送出任何封包，
+     * 即可被本條判定為可疑。</p>
      */
     public static PostTeleportVerdict evaluatePostTeleport(boolean online,
                                                            boolean sameWorld,
@@ -417,7 +497,8 @@ public final class IslandTeleportHelper {
                                                            boolean groundBelow,
                                                            boolean onGround,
                                                            boolean noMovementSinceLanding,
-                                                           boolean clientChunkSent) {
+                                                           boolean clientChunkSent,
+                                                           boolean clientActivityObserved) {
         if (!online) {
             return PostTeleportVerdict.ok();
         }
@@ -442,6 +523,12 @@ public final class IslandTeleportHelper {
         if (noMovementSinceLanding && !onGround && groundBelow) {
             appendReason(reason,
                     "伺服器端實體未著地（OnGround=0）且傳送後幾乎無位移（疑似客戶端維度交握未完成，仍卡在載入地形）");
+        }
+        if (noMovementSinceLanding && !clientActivityObserved) {
+            appendReason(reason,
+                    "伺服器狀態正常，但跨世界傳送後在驗證視窗內未觀察到任何客戶端主動封包"
+                            + "（移動／視角／互動／指令／背包／揮手），且玩家仍停在落點"
+                            + "（客戶端可能尚未確認維度切換，仍卡在載入地形）");
         }
         if (reason.length() == 0) {
             return PostTeleportVerdict.ok();

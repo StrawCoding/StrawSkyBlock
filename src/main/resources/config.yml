@@ -33,6 +33,10 @@ teleport:
   recovery-reverify-delay-ticks: 20
   # 跨世界傳送期間是否於落點 3x3 區塊加上 plugin chunk ticket。
   chunk-ticket: true
+  # 跨世界傳送後，是否要求偵測到客戶端主動封包（移動／互動／指令／背包／揮手）才算交握完成。
+  # 開啟時：若驗證視窗內玩家仍停在落點且毫無客戶端活動，即判定為「伺服器正常但客戶端卡在載入地形」，
+  # 觸發卡住恢復；恢復後仍無動靜則輸出繁體中文診斷（不會無限重送，恢復為有界一次）。
+  client-ack-required: true
 
 # 在空島世界內攔截 /spawn（HuskHomes），改走 Paper-safe 的 chunk 同步傳送，避免客戶端卡在「載入地形」。
 spawn-intercept:
