@@ -89,6 +89,18 @@ public class ConfigManager {
 
     // ---- teleport (客戶端同步安全傳送) ----
     /**
+     * 傳送偵測總開關（v1.0.26）。
+     *
+     * <p>關閉（{@code false}，預設）時：跨世界傳送仍會預載並保留目的地區塊、執行（同步）傳送，
+     * 但<b>不再進行傳送後偵測</b>——即不啟動客戶端活動追蹤、不做成功後驗證、不做卡住恢復、
+     * 不做最終強制重連（kick），也不會因偵測「可疑」而輸出診斷或顯示傳送失敗訊息。
+     * 開啟（{@code true}）時恢復完整偵測／恢復流程。</p>
+     */
+    public boolean isTeleportDetectionEnabled() {
+        return config.getBoolean("teleport.detection-enabled", false);
+    }
+
+    /**
      * 跨世界傳送策略（v1.0.12）：
      * <ul>
      *   <li>{@code PRELOAD_WAIT_SYNC}（預設）：預載並保留目的地區塊 → 等待數 tick →

@@ -220,6 +220,12 @@ public final class IslandTeleportHelper {
                             if (successMessageKey != null) {
                                 plugin.getMessageManager().send(player, successMessageKey);
                             }
+                            // 偵測關閉：傳送已完成，直接釋放票證，不啟動追蹤／驗證／恢復。
+                            if (!shouldRunPostTeleportDetection(
+                                    plugin.getConfigManager().isTeleportDetectionEnabled())) {
+                                releaseChunkTickets(plugin, destWorld, heldTickets);
+                                return;
+                            }
                             Location anchor = player.getLocation().clone();
                             if (crossWorld && plugin.getTeleportActivityTracker() != null) {
                                 // 自落點起開始觀察客戶端是否送出主動封包（用於驗證階段判定交握是否完成）。
@@ -275,9 +281,11 @@ public final class IslandTeleportHelper {
             // 等待後再次確保區塊載入（票證期間應仍載入，此處為保險）。
             prepareForTeleport(player, destination, DEFAULT_CHUNK_RADIUS);
 
+            final boolean detectionEnabled = shouldRunPostTeleportDetection(
+                    plugin.getConfigManager().isTeleportDetectionEnabled());
             // 在傳送前開始觀察客戶端活動：同步傳送本身以 PlayerTeleportEvent 觸發，已被追蹤器排除，
-            // 因此 session 只會計入傳送後客戶端真正送出的主動封包。
-            if (plugin.getTeleportActivityTracker() != null) {
+            // 因此 session 只會計入傳送後客戶端真正送出的主動封包。偵測關閉時不啟動追蹤。
+            if (detectionEnabled && plugin.getTeleportActivityTracker() != null) {
                 plugin.getTeleportActivityTracker().beginSession(player.getUniqueId());
             }
 
@@ -316,6 +324,13 @@ public final class IslandTeleportHelper {
                         + " 已於 " + formatWorldLoc(player.getLocation())
                         + " 完成" + (useSync ? "同步" : "非同步") + "傳送，等待 " + activityWaitTicks
                         + " tick 客戶端活動穩定後再驗證");
+            }
+
+            // 偵測關閉：傳送已完成，僅在客戶端活動視窗後釋放區塊票證，不進行任何驗證／恢復／kick。
+            if (!detectionEnabled) {
+                Bukkit.getScheduler().runTaskLater(plugin,
+                        () -> releaseChunkTickets(plugin, destWorld, heldTickets), activityWaitTicks);
+                return;
             }
 
             // 步驟 4+5：等待客戶端活動穩定視窗後才驗證；唯有此時仍可疑才進行有界恢復／最終 kick。
@@ -536,6 +551,16 @@ public final class IslandTeleportHelper {
         long preload = Math.max(0L, preloadWaitTicks);
         long activity = Math.max(1L, clientActivityWaitTicks);
         return preload + activity;
+    }
+
+    /**
+     * 傳送後是否執行偵測流程（客戶端交握偵測／成功後驗證／卡住恢復／最終 kick）（純邏輯，可單元測試）。
+     *
+     * <p>偵測總開關關閉時一律回傳 {@code false}（傳送照常完成，但完全不做偵測與反應）；
+     * 開啟時回傳 {@code true}，再由 {@link #shouldAttemptRecovery} 等個別旗標進一步判定。</p>
+     */
+    public static boolean shouldRunPostTeleportDetection(boolean detectionEnabled) {
+        return detectionEnabled;
     }
 
     /**

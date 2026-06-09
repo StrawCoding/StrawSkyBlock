@@ -255,6 +255,16 @@ class IslandTeleportHelperTest {
         assertFalse(IslandTeleportHelper.shouldAttemptRecovery(true, true, false));
     }
 
+    // ---- v1.0.26：傳送偵測總開關 ----
+
+    @Test
+    void postTeleportDetectionGatedByMasterSwitch() {
+        // 關閉時：完全不執行偵測（傳送仍照常完成）。
+        assertFalse(IslandTeleportHelper.shouldRunPostTeleportDetection(false));
+        // 開啟時：才進入後續偵測流程。
+        assertTrue(IslandTeleportHelper.shouldRunPostTeleportDetection(true));
+    }
+
     @Test
     void finalFallbackStillTriggersAfterPostRecoverySuspiciousUnderNewStrategy() {
         // 新策略下，客戶端活動視窗過後仍可疑 → 有界恢復；恢復後再驗證仍可疑 → 最終 kick。
