@@ -138,6 +138,8 @@ robot:
   enabled: true
   # 每位玩家（島嶼）可擁有的機器人數量上限。
   max-per-island: 1
+  # 於機器人商城購買一台機器人的費用（需啟用 Vault 經濟系統才會扣款；設為 0 則免費）。
+  purchase-cost: 50000.0
   # 挖到的方塊是否套用刷石機掉落表（true = 有機率挖出礦物；false = 固定鵝卵石）。
   use-generator-drops: true
   # 掃描的垂直半徑（原點上下各幾格）。

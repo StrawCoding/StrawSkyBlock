@@ -3,6 +3,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/listener/PlayerRespawnListenerTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/listener/VoidProtectionListenerTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/robot/RobotLevelsTest.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/robot/RobotPurchaseTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/robot/RobotScanAreaTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/shop/ShopPricingTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/util/IslandTeleportHelperTest.java

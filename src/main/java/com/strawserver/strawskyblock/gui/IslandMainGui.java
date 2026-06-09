@@ -19,6 +19,7 @@ public class IslandMainGui extends Gui {
     private static final int SLOT_MEMBERS = 14;
     private static final int SLOT_SETTINGS = 16;
     private static final int SLOT_SHOP = 22;
+    private static final int SLOT_ROBOT_SHOP = 24;
     private static final int SLOT_GENERATOR = 28;
     private static final int SLOT_ANIMALS = 30;
     private static final int SLOT_TOP = 32;
@@ -65,6 +66,12 @@ public class IslandMainGui extends Gui {
                     .name("<gold>官方商城")
                     .lore("<gray>將挖到的礦物賣給伺服器", "<yellow>點擊開啟收購介面").glow(true).build());
         }
+        if (plugin.getConfigManager().isRobotEnabled()) {
+            set(SLOT_ROBOT_SHOP, new ItemBuilder(Material.NETHERITE_PICKAXE)
+                    .name("<gold>機器人商城")
+                    .lore("<gray>購買自動挖礦的小機器人", "<yellow>點擊開啟購買介面")
+                    .glow(true).hideAttributes().build());
+        }
         set(SLOT_TOP, new ItemBuilder(Material.GOLD_INGOT)
                 .name("<gold>排行榜").lore("<gray>查看空島排行榜").build());
         set(SLOT_DELETE, new ItemBuilder(Material.TNT)
@@ -99,6 +106,11 @@ public class IslandMainGui extends Gui {
             case SLOT_SETTINGS -> {
                 if (island != null) {
                     new IslandSettingsGui(plugin, island).open(player);
+                }
+            }
+            case SLOT_ROBOT_SHOP -> {
+                if (plugin.getConfigManager().isRobotEnabled()) {
+                    new RobotShopGui(plugin).open(player);
                 }
             }
             case SLOT_GENERATOR -> new IslandGeneratorGui(plugin).open(player);

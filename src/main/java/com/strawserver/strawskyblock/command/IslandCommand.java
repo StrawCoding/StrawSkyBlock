@@ -9,6 +9,7 @@ import com.strawserver.strawskyblock.gui.IslandMainGui;
 import com.strawserver.strawskyblock.gui.IslandMemberGui;
 import com.strawserver.strawskyblock.gui.IslandSettingsGui;
 import com.strawserver.strawskyblock.gui.IslandShopGui;
+import com.strawserver.strawskyblock.gui.RobotShopGui;
 import com.strawserver.strawskyblock.island.Island;
 import com.strawserver.strawskyblock.util.IslandTeleportHelper;
 import org.bukkit.Bukkit;
@@ -33,7 +34,8 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> USER_SUBS = Arrays.asList(
             "create", "home", "sethome", "invite", "accept", "deny", "kick", "leave",
-            "delete", "reset", "members", "settings", "generator", "animals", "shop", "sell", "robot", "top", "visit", "admin");
+            "delete", "reset", "members", "settings", "generator", "animals", "shop", "sell",
+            "robot", "robotshop", "buyrobot", "top", "visit", "admin");
 
     private static final List<String> ADMIN_SUBS = Arrays.asList(
             "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug", "diag");
@@ -91,6 +93,8 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
                     () -> new IslandAnimalGui(plugin).open(player));
             case "shop", "sell" -> requirePerm(player, "strawskyblock.user.shop", () -> openShop(player));
             case "robot" -> requirePerm(player, "strawskyblock.user.robot", () -> handleRobot(player, args));
+            case "robotshop", "buyrobot" -> requirePerm(player, "strawskyblock.user.robot",
+                    () -> openRobotShop(player));
             case "top" -> requirePerm(player, "strawskyblock.user.top", () -> handleTop(player));
             case "visit" -> requirePerm(player, "strawskyblock.user.visit", () -> handleVisit(player, args));
             default -> new IslandMainGui(plugin).open(player);
@@ -185,6 +189,14 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             return;
         }
         new IslandShopGui(plugin).open(player);
+    }
+
+    private void openRobotShop(Player player) {
+        if (!plugin.getConfigManager().isRobotEnabled()) {
+            plugin.getMessageManager().send(player, "robot.disabled");
+            return;
+        }
+        new RobotShopGui(plugin).open(player);
     }
 
     // =========================================================================

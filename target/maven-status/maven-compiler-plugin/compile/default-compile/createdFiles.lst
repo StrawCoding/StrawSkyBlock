@@ -13,6 +13,7 @@ com/strawserver/strawskyblock/listener/BlockFromToListener.class
 com/strawserver/strawskyblock/gui/IslandGeneratorGui.class
 com/strawserver/strawskyblock/island/IslandService.class
 com/strawserver/strawskyblock/robot/RobotService.class
+com/strawserver/strawskyblock/gui/RobotShopGui$1.class
 com/strawserver/strawskyblock/util/WeightedRandom$Entry.class
 com/strawserver/strawskyblock/StrawSkyBlockPlugin.class
 com/strawserver/strawskyblock/island/IslandLocationAllocator.class
@@ -26,7 +27,9 @@ com/strawserver/strawskyblock/world/WorldManager.class
 com/strawserver/strawskyblock/island/Island.class
 com/strawserver/strawskyblock/gui/Gui.class
 com/strawserver/strawskyblock/generator/AnimalSpawnService.class
+com/strawserver/strawskyblock/gui/RobotShopGui.class
 com/strawserver/strawskyblock/util/ItemBuilder.class
+com/strawserver/strawskyblock/robot/RobotPurchase.class
 com/strawserver/strawskyblock/util/TeleportActivityTracker.class
 com/strawserver/strawskyblock/listener/PlayerJoinListener.class
 com/strawserver/strawskyblock/robot/RobotLevels.class
@@ -61,6 +64,7 @@ com/strawserver/strawskyblock/command/IslandCommand.class
 com/strawserver/strawskyblock/config/MessageManager.class
 com/strawserver/strawskyblock/island/IslandTemplateService$1.class
 com/strawserver/strawskyblock/util/BlockPosition.class
+com/strawserver/strawskyblock/robot/RobotPurchase$Result.class
 com/strawserver/strawskyblock/island/IslandMember.class
 com/strawserver/strawskyblock/config/ConfigManager.class
 com/strawserver/strawskyblock/gui/IslandMainGui.class

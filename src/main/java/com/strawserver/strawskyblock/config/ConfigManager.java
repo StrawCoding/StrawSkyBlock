@@ -367,6 +367,13 @@ public class ConfigManager {
         return config.getInt("robot.max-per-island", 1);
     }
 
+    /**
+     * 於機器人商城購買一台機器人的費用，0 表示免費。
+     */
+    public double getRobotPurchaseCost() {
+        return Math.max(0.0, config.getDouble("robot.purchase-cost", 0.0));
+    }
+
     public boolean isRobotUseGeneratorDrops() {
         return config.getBoolean("robot.use-generator-drops", true);
     }

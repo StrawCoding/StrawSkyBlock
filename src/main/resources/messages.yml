@@ -97,6 +97,8 @@ robot:
   level-not-higher: "<red>只能往上升級，無法降級或維持原等級。"
   level-maxed: "<yellow>已達最高等級 L{max}。"
   not-enough-money: "<red>金錢不足，升級需要 <yellow>{cost}</yellow>。"
+  purchase-not-enough: "<red>金錢不足，購買小機器人需要 <yellow>{cost}</yellow>。"
+  purchased: "<green>已購買小機器人並建立於 <yellow>{x}, {y}, {z}</yellow>！請使用 <yellow>/is robot chest</yellow> 連結箱子後再 <yellow>/is robot start</yellow>。"
   started: "<green>小機器人已開始運作。"
   stopped: "<yellow>小機器人已停止。"
   removed: "<green>已移除小機器人。"
