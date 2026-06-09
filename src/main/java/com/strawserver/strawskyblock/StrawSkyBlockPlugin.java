@@ -30,6 +30,7 @@ import com.strawserver.strawskyblock.protection.ProtectionService;
 import com.strawserver.strawskyblock.robot.RobotService;
 import com.strawserver.strawskyblock.util.TeleportActivityTracker;
 import com.strawserver.strawskyblock.world.WorldManager;
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.PluginManager;
@@ -64,9 +65,21 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
     private final Set<UUID> bypassing = ConcurrentHashMap.newKeySet();
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
+        // v1.0.29：原版主世界（level-name，如 world）於伺服器啟動、onEnable 之前即生成，
+        // Bukkit 會在該階段呼叫 getDefaultWorldGenerator 取得自訂生成器。因此必須在 onLoad
+        // 先備妥 ConfigManager 與 WorldManager，否則主世界拿不到虛空生成器（configManager 為 null）。
         this.configManager = new ConfigManager(this);
         this.configManager.load();
+        this.worldManager = new WorldManager(this);
+    }
+
+    @Override
+    public void onEnable() {
+        if (this.configManager == null) {
+            this.configManager = new ConfigManager(this);
+            this.configManager.load();
+        }
 
         this.messageManager = new MessageManager(this);
         this.messageManager.load();
@@ -83,30 +96,53 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
             return;
         }
 
-        this.worldManager = new WorldManager(this);
-        this.worldManager.loadOrCreateIslandWorld();
-        this.worldManager.loadOrCreateNetherWorld();
+        if (this.worldManager == null) {
+            this.worldManager = new WorldManager(this);
+        }
 
         this.islandService = new IslandService(this);
         this.protectionService = new ProtectionService(this);
         this.cobbleGeneratorService = new CobbleGeneratorService(this);
-        this.cobbleGeneratorService.reload();
-        this.cobbleGeneratorService.start();
         this.animalSpawnService = new AnimalSpawnService(this);
-        this.animalSpawnService.reload();
         this.robotService = new RobotService(this);
-
-        setupEconomy();
         this.shopService = new ShopService(this);
-        setupPlaceholders();
+
         registerListeners();
         registerCommands();
 
-        this.islandService.loadAll();
-        this.robotService.loadAll();
-        this.robotService.start();
+        // v1.0.29：本插件為 load: STARTUP（早於預設世界載入，使虛空生成器能套到原版世界 world/
+        // world_nether/world_the_end）。但 STARTUP 階段 Paper 禁止建立額外世界，且 Vault／
+        // PlaceholderAPI 等軟相依尚未啟用、預設世界也尚未載入。因此把「建立 SkyBlock 世界、淨空
+        // 原版世界、經濟／佔位符掛鉤、載入島嶼／機器人並啟動排程」全部延後到伺服器完全啟動後的
+        // 第一個 tick 執行（此時所有插件已啟用、世界已載入、且允許建立世界）。
+        Bukkit.getScheduler().runTask(this, this::finishStartup);
 
-        getLogger().info("StrawSkyBlock 已啟用。");
+        getLogger().info("StrawSkyBlock 已啟用（待伺服器啟動完成後完成初始化）。");
+    }
+
+    /**
+     * 伺服器完全啟動後（第一個 tick）執行的延後初始化。
+     *
+     * <p>包含必須在啟動完成後才能進行的操作：建立 SkyBlock 專用世界（STARTUP 階段禁止建立世界）、
+     * 淨空伺服器原版世界、掛鉤 Vault／PlaceholderAPI（此時才啟用），以及載入島嶼／機器人並啟動排程。</p>
+     */
+    private void finishStartup() {
+        worldManager.loadOrCreateIslandWorld();
+        worldManager.loadOrCreateNetherWorld();
+        worldManager.setupVanillaVoidWorlds();
+
+        setupEconomy();
+        setupPlaceholders();
+
+        cobbleGeneratorService.reload();
+        cobbleGeneratorService.start();
+        animalSpawnService.reload();
+
+        islandService.loadAll();
+        robotService.loadAll();
+        robotService.start();
+
+        getLogger().info("StrawSkyBlock 啟動後初始化完成。");
     }
 
     @Override
@@ -186,7 +222,14 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     @Override
     public @Nullable ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, @Nullable String id) {
-        if (configManager != null && worldManager != null && configManager.isVoidGenerator()
+        if (configManager == null || worldManager == null) {
+            return null;
+        }
+        // v1.0.29：原版世界（主世界/地獄/終界）若啟用虛空淨空，一律套用虛空生成器。
+        if (configManager.isVanillaVoidWorld(worldName)) {
+            return worldManager.getGenerator();
+        }
+        if (configManager.isVoidGenerator()
                 && (worldName.equals(configManager.getIslandWorld())
                         || (configManager.isNetherEnabled()
                                 && worldName.equals(configManager.getNetherWorld())))) {

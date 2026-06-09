@@ -95,6 +95,20 @@ world:
   # 玩家首次經由傳送門抵達下界落點時，是否自動於落點下方鋪一小塊基岩安全平台，
   #   避免「地形尚未生成」時一過傳送門就掉入虛空。關閉則為純虛空（玩家自理）。
   nether-safe-platform: true
+  # v1.0.29 將伺服器原版世界（主世界/地獄/終界）改為純虛空。
+  #   主世界（level-name，預設 world）作為大廳：純虛空，僅於出生點放置一個草方塊供站立，
+  #   不帶任何 SkyBlock 功能（保護／刷石機／機器人等只作用於 SkyBlock 世界）。
+  #   原版地獄/終界一併淨空為虛空。注意：保留 portal 事件機制（不使用 allow-nether=false），
+  #   以免影響 SkyBlock 下界傳送門。
+  vanilla-void-enabled: true
+  # 主世界（大廳）名稱，通常等於 server.properties 的 level-name。
+  vanilla-overworld: world
+  # 是否於主世界出生點放置一個草方塊（玩家站在其上）。
+  vanilla-overworld-grass: true
+  # 一併納入虛空淨空的原版世界（地獄／終界），這些世界不放任何方塊。
+  vanilla-void-worlds:
+    - world_nether
+    - world_the_end
 
 island:
   max-islands-per-player: 1

@@ -87,6 +87,55 @@ public class WorldManager {
         return Bukkit.getWorld(plugin.getConfigManager().getNetherWorld());
     }
 
+    /**
+     * 將伺服器原版世界（主世界/地獄/終界）設定為純虛空（v1.0.29），必須在主執行緒呼叫。
+     *
+     * <p>主世界（大廳）僅於出生點放置一個草方塊供站立，不帶任何 SkyBlock 功能；
+     * 地獄／終界則為完全空的虛空。世界本身的虛空生成由 {@code getDefaultWorldGenerator}
+     * 搭配 bukkit.yml 指定，本方法負責出生點與大廳草方塊。</p>
+     */
+    public void setupVanillaVoidWorlds() {
+        if (!plugin.getConfigManager().isVanillaVoidEnabled()) {
+            return;
+        }
+        World overworld = Bukkit.getWorld(plugin.getConfigManager().getVanillaOverworld());
+        if (overworld != null) {
+            setupLobbyWorld(overworld);
+        }
+        for (String name : plugin.getConfigManager().getVanillaVoidWorlds()) {
+            World world = Bukkit.getWorld(name);
+            if (world != null) {
+                applyVoidWorldSettings(world);
+                plugin.getLogger().info("原版世界已淨空為虛空：" + name);
+            }
+        }
+    }
+
+    /**
+     * 主世界（大廳）：放置單一草方塊、設定出生點於其上、保持出生區塊載入，並關閉生物生成等。
+     */
+    private void setupLobbyWorld(World world) {
+        int y = plugin.getConfigManager().getIslandY();
+        if (plugin.getConfigManager().isVanillaOverworldGrass()) {
+            world.getBlockAt(0, y, 0).setType(Material.GRASS_BLOCK, false);
+        }
+        world.setSpawnLocation(new Location(world, 0.5, y + 1, 0.5));
+        applyVoidWorldSettings(world);
+        world.setKeepSpawnInMemory(true);
+        world.getChunkAt(0, 0);
+        plugin.getLogger().info("主世界已設定為大廳虛空：" + world.getName());
+    }
+
+    /**
+     * 淨空世界的共用設定：關閉生物生成、火焰蔓延與天氣，保持空蕩。
+     */
+    private void applyVoidWorldSettings(World world) {
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+        world.setGameRule(GameRule.DO_FIRE_TICK, false);
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        world.setSpawnFlags(false, false);
+    }
+
     private void applyWorldSettings(World world) {
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);

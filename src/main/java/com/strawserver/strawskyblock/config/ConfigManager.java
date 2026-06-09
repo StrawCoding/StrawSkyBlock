@@ -301,6 +301,51 @@ public class ConfigManager {
         return isNetherEnabled() && worldName.equals(getNetherWorld());
     }
 
+    /**
+     * 是否將伺服器原版世界（主世界/地獄/終界）改為純虛空（v1.0.29）。
+     */
+    public boolean isVanillaVoidEnabled() {
+        return config.getBoolean("world.vanilla-void-enabled", true);
+    }
+
+    /**
+     * 主世界（大廳）名稱，通常等於 server.properties 的 level-name。
+     */
+    public String getVanillaOverworld() {
+        return config.getString("world.vanilla-overworld", "world");
+    }
+
+    /**
+     * 是否於主世界出生點放置一個草方塊。
+     */
+    public boolean isVanillaOverworldGrass() {
+        return config.getBoolean("world.vanilla-overworld-grass", true);
+    }
+
+    /**
+     * 一併納入虛空淨空的原版世界（地獄／終界）名稱清單。
+     */
+    public java.util.List<String> getVanillaVoidWorlds() {
+        java.util.List<String> list = config.getStringList("world.vanilla-void-worlds");
+        if (list == null || list.isEmpty()) {
+            return java.util.Arrays.asList("world_nether", "world_the_end");
+        }
+        return list;
+    }
+
+    /**
+     * 判斷某世界是否為被淨空的原版世界（主世界大廳或地獄/終界）。
+     */
+    public boolean isVanillaVoidWorld(String worldName) {
+        if (worldName == null || !isVanillaVoidEnabled()) {
+            return false;
+        }
+        if (worldName.equals(getVanillaOverworld())) {
+            return true;
+        }
+        return getVanillaVoidWorlds().contains(worldName);
+    }
+
     // ---- island ----
     public int getMaxIslandsPerPlayer() {
         return config.getInt("island.max-islands-per-player", 1);
