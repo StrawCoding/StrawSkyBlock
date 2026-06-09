@@ -30,10 +30,10 @@ com/strawserver/strawskyblock/util/TeleportActivityTracker.class
 com/strawserver/strawskyblock/listener/PlayerJoinListener.class
 com/strawserver/strawskyblock/robot/RobotLevels.class
 com/strawserver/strawskyblock/util/ItemDisplayNames.class
+com/strawserver/strawskyblock/diagnostic/DiagnosticReport.class
 com/strawserver/strawskyblock/protection/ProtectionService.class
 com/strawserver/strawskyblock/gui/IslandMemberGui.class
 com/strawserver/strawskyblock/listener/BlockBreakListener.class
-com/strawserver/strawskyblock/diagnostic/DiagnosticReport.class
 com/strawserver/strawskyblock/island/IslandFlag.class
 com/strawserver/strawskyblock/util/SpawnCommandParser.class
 com/strawserver/strawskyblock/world/VoidChunkGenerator.class
@@ -41,8 +41,9 @@ com/strawserver/strawskyblock/island/IslandTemplateService.class
 com/strawserver/strawskyblock/util/ServerSpawnResolver.class
 com/strawserver/strawskyblock/listener/EntityDamageListener.class
 com/strawserver/strawskyblock/util/IslandTeleportHelper$PostTeleportVerdict.class
-com/strawserver/strawskyblock/command/IslandCommand$1.class
 com/strawserver/strawskyblock/robot/UpgradeResult.class
+com/strawserver/strawskyblock/command/IslandCommand$1.class
+com/strawserver/strawskyblock/listener/VoidProtectionListener.class
 com/strawserver/strawskyblock/util/MiniMessageUtil.class
 com/strawserver/strawskyblock/listener/BlockPlaceListener.class
 com/strawserver/strawskyblock/listener/PlayerRespawnListener.class

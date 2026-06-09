@@ -208,3 +208,18 @@ economy:
   enabled: true
   provider: Vault
   create-island-cost: 0
+
+void-protection:
+  enabled: true
+  # 虛空防護 Y 閾值（小於等於此值時觸發傳送）
+  y-threshold: 0
+  # 傳送回島嶼前給予的無敵 tick 數
+  invincibility-ticks: 40
+  # 無島嶼玩家的 fallback 重生點（預設使用空島世界出生點）
+  fallback-spawn:
+    world: straw_skyblock_world
+    x: 0.5
+    y: 100.0
+    z: 0.5
+    yaw: 0
+    pitch: 0

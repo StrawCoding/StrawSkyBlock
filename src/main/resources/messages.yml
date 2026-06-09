@@ -18,6 +18,7 @@ island:
   no-island: "<red>你還沒有空島，請先建立。"
   teleport-home: "<green>已傳送回你的空島。"
   teleport-failed: "<red>傳送至空島失敗，請稍後再試或聯絡管理員。若畫面卡在「載入地形」，請重新登入後使用 <yellow>/is home</yellow>。"
+  void-teleport: "<green>已將你傳送回島嶼，小心腳下！"
   set-home: "<green>已設定空島傳送點。"
   set-home-outside: "<red>你必須在自己的空島範圍內才能設定傳送點。"
   deleted: "<green>你的空島已刪除。"

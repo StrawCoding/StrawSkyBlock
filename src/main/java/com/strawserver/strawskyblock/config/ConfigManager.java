@@ -444,6 +444,35 @@ public class ConfigManager {
         return config.getDouble("economy.create-island-cost", 0);
     }
 
+    // ---- void protection ----
+    public boolean isVoidProtectionEnabled() {
+        return config.getBoolean("void-protection.enabled", true);
+    }
+
+    public int getVoidProtectionThreshold() {
+        return config.getInt("void-protection.y-threshold", 0);
+    }
+
+    public int getVoidProtectionInvincibilityTicks() {
+        return Math.max(0, config.getInt("void-protection.invincibility-ticks", 40));
+    }
+
+    /**
+     * 無島嶼玩家的虛空 fallback 傳送點。未設定或設定不完整時，回傳空島世界出生點。
+     */
+    public org.bukkit.Location getVoidProtectionFallbackSpawn() {
+        org.bukkit.World world = plugin.getServer().getWorld(config.getString("void-protection.fallback-spawn.world", getIslandWorld()));
+        if (world == null) {
+            world = plugin.getServer().getWorlds().get(0);
+        }
+        double x = config.getDouble("void-protection.fallback-spawn.x", 0.5D);
+        double y = config.getDouble("void-protection.fallback-spawn.y", getIslandY());
+        double z = config.getDouble("void-protection.fallback-spawn.z", 0.5D);
+        float yaw = (float) config.getDouble("void-protection.fallback-spawn.yaw", 0.0D);
+        float pitch = (float) config.getDouble("void-protection.fallback-spawn.pitch", 0.0D);
+        return new org.bukkit.Location(world, x, y, z, yaw, pitch);
+    }
+
     /**
      * 驗證礦物掉落機率總和，避免設定錯誤導致抽取偏差。
      */
