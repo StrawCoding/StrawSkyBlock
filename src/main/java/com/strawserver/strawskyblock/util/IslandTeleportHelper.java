@@ -56,6 +56,15 @@ public final class IslandTeleportHelper {
     public static final String FINAL_FALLBACK_DIAGNOSTIC_SUFFIX =
             "已執行最終恢復：強制重新連線以重置客戶端維度交握（kick）";
 
+    /**
+     * 跨世界傳送策略：預載並保留目的地區塊 → 等待數 tick → 主執行緒同步傳送 →
+     * 等待客戶端活動穩定 → 必要時才走恢復／最終 kick（v1.0.12 預設，治本方向）。
+     */
+    public static final String STRATEGY_PRELOAD_WAIT_SYNC = "PRELOAD_WAIT_SYNC";
+
+    /** 跨世界傳送策略：v1.0.11 舊行為（teleportAsync + 多次重新同步 + 驗證）。 */
+    public static final String STRATEGY_LEGACY_ASYNC_RESYNC = "LEGACY_ASYNC_RESYNC";
+
     /** 以傳送點為中心預載的區塊半徑（含中心 = (2r+1)^2 個區塊）。 */
     public static final int DEFAULT_CHUNK_RADIUS = 1;
 
@@ -155,6 +164,10 @@ public final class IslandTeleportHelper {
             return true;
         }
 
+        // 於任何傳送發生「之前」擷取原始來源座標，供成功後診斷使用，
+        // 避免 v1.0.11 觀察到的 bug：傳送成功後玩家位置已是目的地，診斷來源被誤標為目的地。
+        final Location source = player.getLocation().clone();
+
         prepareForTeleport(player, destination, DEFAULT_CHUNK_RADIUS);
 
         final World destWorld = destination.getWorld();
@@ -163,11 +176,21 @@ public final class IslandTeleportHelper {
                 ? acquireChunkTickets(plugin, destWorld, destination, DEFAULT_CHUNK_RADIUS)
                 : Collections.emptyList();
 
+        final boolean preloadWaitSync = usePreloadWaitSyncStrategy(
+                crossWorld, plugin.getConfigManager().getTeleportStrategy());
+
         if (plugin.getConfigManager().isDebug()) {
             plugin.getLogger().info("空島傳送：玩家=" + player.getName()
-                    + " 從 " + formatWorldLoc(player.getLocation())
+                    + " 從 " + formatWorldLoc(source)
                     + " 至 " + formatWorldLoc(destination)
-                    + "（跨世界=" + crossWorld + "）");
+                    + "（跨世界=" + crossWorld
+                    + "，策略=" + (preloadWaitSync ? STRATEGY_PRELOAD_WAIT_SYNC : STRATEGY_LEGACY_ASYNC_RESYNC)
+                    + "）");
+        }
+
+        if (preloadWaitSync) {
+            return executePreloadWaitSyncTeleport(plugin, player, destination, successMessageKey,
+                    operation, source, heldTickets);
         }
 
         try {
@@ -180,7 +203,7 @@ public final class IslandTeleportHelper {
                             }
                             if (throwable != null) {
                                 plugin.getDiagnosticService().reportTeleportFailure(operation, player,
-                                        destination, "teleportAsync 以例外結束（completed exceptionally）",
+                                        source, destination, "teleportAsync 以例外結束（completed exceptionally）",
                                         throwable);
                                 plugin.getMessageManager().send(player, "island.teleport-failed");
                                 releaseChunkTickets(plugin, destWorld, heldTickets);
@@ -188,7 +211,7 @@ public final class IslandTeleportHelper {
                             }
                             if (!Boolean.TRUE.equals(success)) {
                                 plugin.getDiagnosticService().reportTeleportFailure(operation, player,
-                                        destination, "teleportAsync 回傳 false（傳送被拒絕，可能被其他插件取消或目標區塊不可用）",
+                                        source, destination, "teleportAsync 回傳 false（傳送被拒絕，可能被其他插件取消或目標區塊不可用）",
                                         null);
                                 plugin.getMessageManager().send(player, "island.teleport-failed");
                                 releaseChunkTickets(plugin, destWorld, heldTickets);
@@ -203,7 +226,7 @@ public final class IslandTeleportHelper {
                                 plugin.getTeleportActivityTracker().beginSession(player.getUniqueId());
                             }
                             scheduleClientSyncSafeguard(plugin, player, destination, operation,
-                                    crossWorld, heldTickets, anchor);
+                                    crossWorld, heldTickets, anchor, source);
                         };
                         if (Bukkit.isPrimaryThread()) {
                             finish.run();
@@ -212,12 +235,98 @@ public final class IslandTeleportHelper {
                         }
                     });
         } catch (RuntimeException e) {
-            plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+            plugin.getDiagnosticService().reportTeleportFailure(operation, player, source, destination,
                     "發起 teleportAsync 時拋出例外", e);
             plugin.getMessageManager().send(player, "island.teleport-failed");
             releaseChunkTickets(plugin, destWorld, heldTickets);
             return false;
         }
+        return true;
+    }
+
+    /**
+     * PRELOAD_WAIT_SYNC 策略（v1.0.12，治本方向）：先預載並保留目的地區塊，等待數 tick 讓伺服器
+     * 將區塊資料備妥後，於主執行緒「同步」傳送；傳送後再等待客戶端活動穩定視窗，唯有視窗過後仍可疑
+     * 才進行有界的卡住恢復與最終 kick。藉由「先確保區塊送達再傳送」降低客戶端卡在「載入地形」的機率，
+     * 並大幅減少對重新同步轟炸的依賴。
+     *
+     * <p>所有等待／恢復／最終處置皆為有界排程（無迴圈、無遞迴重送），確保不會無限循環。</p>
+     */
+    private static boolean executePreloadWaitSyncTeleport(StrawSkyBlockPlugin plugin,
+                                                          Player player,
+                                                          Location destination,
+                                                          @Nullable String successMessageKey,
+                                                          String operation,
+                                                          Location source,
+                                                          List<int[]> heldTickets) {
+        final World destWorld = destination.getWorld();
+        final long preloadWaitTicks = Math.max(0L, plugin.getConfigManager().getTeleportPreloadWaitTicks());
+        final long activityWaitTicks =
+                Math.max(1L, plugin.getConfigManager().getTeleportClientActivityWaitTicks());
+        final boolean useSync = shouldUseSyncTeleport(true,
+                plugin.getConfigManager().isTeleportUseSyncCrossWorldTeleport());
+
+        // 步驟 1+2：預載已於呼叫端完成並以 chunk ticket 保留；等待 preloadWaitTicks 後再執行傳送。
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) {
+                releaseChunkTickets(plugin, destWorld, heldTickets);
+                return;
+            }
+            // 等待後再次確保區塊載入（票證期間應仍載入，此處為保險）。
+            prepareForTeleport(player, destination, DEFAULT_CHUNK_RADIUS);
+
+            // 在傳送前開始觀察客戶端活動：同步傳送本身以 PlayerTeleportEvent 觸發，已被追蹤器排除，
+            // 因此 session 只會計入傳送後客戶端真正送出的主動封包。
+            if (plugin.getTeleportActivityTracker() != null) {
+                plugin.getTeleportActivityTracker().beginSession(player.getUniqueId());
+            }
+
+            // 步驟 3：主執行緒同步傳送（此 runnable 已在主執行緒）。
+            boolean ok;
+            try {
+                if (useSync) {
+                    ok = player.teleport(destination, PlayerTeleportEvent.TeleportCause.PLUGIN);
+                } else {
+                    player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN);
+                    ok = true;
+                }
+            } catch (RuntimeException e) {
+                plugin.getDiagnosticService().reportTeleportFailure(operation, player, source,
+                        destination, "PRELOAD_WAIT_SYNC 同步傳送時拋出例外", e);
+                plugin.getMessageManager().send(player, "island.teleport-failed");
+                releaseChunkTickets(plugin, destWorld, heldTickets);
+                endActivitySession(plugin, player);
+                return;
+            }
+            if (!ok) {
+                plugin.getDiagnosticService().reportTeleportFailure(operation, player, source,
+                        destination, "同步傳送回傳 false（傳送被拒絕，可能被其他插件取消或目標區塊不可用）", null);
+                plugin.getMessageManager().send(player, "island.teleport-failed");
+                releaseChunkTickets(plugin, destWorld, heldTickets);
+                endActivitySession(plugin, player);
+                return;
+            }
+            if (successMessageKey != null) {
+                plugin.getMessageManager().send(player, successMessageKey);
+            }
+            final Location anchor = player.getLocation().clone();
+
+            if (plugin.getConfigManager().isDebug()) {
+                plugin.getLogger().info("空島傳送（PRELOAD_WAIT_SYNC）：玩家=" + player.getName()
+                        + " 已於 " + formatWorldLoc(player.getLocation())
+                        + " 完成" + (useSync ? "同步" : "非同步") + "傳送，等待 " + activityWaitTicks
+                        + " tick 客戶端活動穩定後再驗證");
+            }
+
+            // 步驟 4+5：等待客戶端活動穩定視窗後才驗證；唯有此時仍可疑才進行有界恢復／最終 kick。
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    verifyAndRecover(plugin, player, destination, operation, anchor, true, source);
+                } finally {
+                    releaseChunkTickets(plugin, destWorld, heldTickets);
+                }
+            }, activityWaitTicks);
+        }, preloadWaitTicks);
         return true;
     }
 
@@ -231,7 +340,8 @@ public final class IslandTeleportHelper {
                                                     String operation,
                                                     boolean crossWorld,
                                                     List<int[]> heldTickets,
-                                                    Location anchor) {
+                                                    Location anchor,
+                                                    Location source) {
         long resyncDelay = Math.max(0L, plugin.getConfigManager().getTeleportResyncDelayTicks());
         long verifyDelay = Math.max(1L, plugin.getConfigManager().getTeleportVerifyDelayTicks());
         long interval = plugin.getConfigManager().getTeleportResyncIntervalTicks();
@@ -249,14 +359,14 @@ public final class IslandTeleportHelper {
                     if (!player.isOnline() || destWorld == null || !destWorld.equals(player.getWorld())) {
                         return;
                     }
-                    performResyncAttempt(plugin, player, destination, operation, attemptIndex);
+                    performResyncAttempt(plugin, player, destination, operation, attemptIndex, source);
                 }, delay);
             }
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             try {
-                verifyAndRecover(plugin, player, destination, operation, anchor, crossWorld);
+                verifyAndRecover(plugin, player, destination, operation, anchor, crossWorld, source);
             } finally {
                 releaseChunkTickets(plugin, destWorld, heldTickets);
             }
@@ -267,7 +377,8 @@ public final class IslandTeleportHelper {
                                              Player player,
                                              Location destination,
                                              String operation,
-                                             int attemptIndex) {
+                                             int attemptIndex,
+                                             Location source) {
         prepareForTeleport(player, destination, DEFAULT_CHUNK_RADIUS);
         Location target = destination.clone();
         if (attemptIndex > 0 && attemptIndex % 2 == 1) {
@@ -301,7 +412,7 @@ public final class IslandTeleportHelper {
                         }
                     });
         } catch (RuntimeException e) {
-            plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+            plugin.getDiagnosticService().reportTeleportFailure(operation, player, source, destination,
                     "重新同步傳送時拋出例外", e);
         }
     }
@@ -315,7 +426,8 @@ public final class IslandTeleportHelper {
                                          Location destination,
                                          String operation,
                                          Location anchor,
-                                         boolean crossWorld) {
+                                         boolean crossWorld,
+                                         Location source) {
         PostTeleportVerdict verdict = collectPostTeleportVerdict(plugin, player, destination, anchor,
                 crossWorld);
         if (!verdict.suspicious()) {
@@ -323,7 +435,8 @@ public final class IslandTeleportHelper {
             return;
         }
 
-        if (crossWorld && plugin.getConfigManager().isTeleportRecoveryEnabled() && player.isOnline()) {
+        if (shouldAttemptRecovery(crossWorld, verdict.suspicious(),
+                plugin.getConfigManager().isTeleportRecoveryEnabled()) && player.isOnline()) {
             if (plugin.getConfigManager().isDebug()) {
                 plugin.getLogger().info("空島傳送卡住恢復：玩家=" + player.getName()
                         + " 於 " + formatWorldLoc(player.getLocation())
@@ -338,7 +451,7 @@ public final class IslandTeleportHelper {
                             anchor, crossWorld);
                     if (retry.suspicious()) {
                         handlePostRecoveryStillSuspicious(plugin, player, destination, operation,
-                                retry, crossWorld);
+                                retry, crossWorld, source);
                     }
                 } finally {
                     endActivitySession(plugin, player);
@@ -347,7 +460,7 @@ public final class IslandTeleportHelper {
             return;
         }
 
-        reportSuspiciousVerdict(plugin, player, destination, operation, verdict);
+        reportSuspiciousVerdict(plugin, player, destination, operation, verdict, source);
         endActivitySession(plugin, player);
     }
 
@@ -366,7 +479,8 @@ public final class IslandTeleportHelper {
                                                           Location destination,
                                                           String operation,
                                                           PostTeleportVerdict verdict,
-                                                          boolean crossWorld) {
+                                                          boolean crossWorld,
+                                                          Location source) {
         boolean kickEnabled = plugin.getConfigManager().isTeleportFinalFallbackKickEnabled();
         if (shouldPerformFinalFallbackKick(crossWorld, verdict.suspicious(), kickEnabled)
                 && player.isOnline()) {
@@ -376,14 +490,61 @@ public final class IslandTeleportHelper {
                         + " 於 " + formatWorldLoc(player.getLocation())
                         + " 執行強制重新連線（原因：" + verdict.reason() + "）");
             }
-            plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+            plugin.getDiagnosticService().reportTeleportFailure(operation, player, source, destination,
                     diagnosticReason, null);
             Component kickMessage = MiniMessageUtil.parse(
                     plugin.getConfigManager().getTeleportFinalFallbackKickMessage());
             player.kick(kickMessage);
             return;
         }
-        reportSuspiciousVerdict(plugin, player, destination, operation, verdict);
+        reportSuspiciousVerdict(plugin, player, destination, operation, verdict, source);
+    }
+
+    /**
+     * 是否對此次傳送採用 PRELOAD_WAIT_SYNC 策略（純邏輯，可單元測試）。
+     *
+     * <p>同世界傳送一律回傳 {@code false}（沿用快速的非同步路徑，不額外延遲）；
+     * 跨世界傳送時，{@code null}／空字串／{@code PRELOAD_WAIT_SYNC}（不分大小寫）皆視為採用，
+     * 其餘字串（例如 {@code LEGACY_ASYNC_RESYNC}）則回退舊行為。</p>
+     */
+    public static boolean usePreloadWaitSyncStrategy(boolean crossWorld, String strategy) {
+        if (!crossWorld) {
+            return false;
+        }
+        if (strategy == null || strategy.isBlank()) {
+            return true;
+        }
+        return STRATEGY_PRELOAD_WAIT_SYNC.equalsIgnoreCase(strategy.trim());
+    }
+
+    /**
+     * 跨世界傳送是否使用主執行緒同步傳送（純邏輯，可單元測試）。
+     */
+    public static boolean shouldUseSyncTeleport(boolean crossWorld, boolean useSyncConfig) {
+        return crossWorld && useSyncConfig;
+    }
+
+    /**
+     * 計算 PRELOAD_WAIT_SYNC 策略下，「成功後驗證／恢復」最早可能發生的相對 tick（純邏輯，可單元測試）。
+     *
+     * <p>自發起傳送起算：等待 {@code preloadWaitTicks} 後才同步傳送，再等待
+     * {@code clientActivityWaitTicks}（客戶端活動穩定視窗）後才進行第一次驗證。
+     * 因此恢復絕不會早於 {@code preloadWaitTicks + clientActivityWaitTicks}，
+     * 保證恢復被延後到客戶端活動視窗之後（治本方向：先給客戶端時間完成交握）。</p>
+     */
+    public static long computeRecoveryEarliestTick(long preloadWaitTicks, long clientActivityWaitTicks) {
+        long preload = Math.max(0L, preloadWaitTicks);
+        long activity = Math.max(1L, clientActivityWaitTicks);
+        return preload + activity;
+    }
+
+    /**
+     * 是否應在 PRELOAD_WAIT_SYNC 策略下、客戶端活動視窗過後仍可疑時嘗試卡住恢復（純邏輯，可單元測試）。
+     */
+    public static boolean shouldAttemptRecovery(boolean crossWorld,
+                                                boolean stillSuspicious,
+                                                boolean recoveryEnabled) {
+        return crossWorld && stillSuspicious && recoveryEnabled;
     }
 
     /**
@@ -407,8 +568,9 @@ public final class IslandTeleportHelper {
                                                 Player player,
                                                 Location destination,
                                                 String operation,
-                                                PostTeleportVerdict verdict) {
-        plugin.getDiagnosticService().reportTeleportFailure(operation, player, destination,
+                                                PostTeleportVerdict verdict,
+                                                Location source) {
+        plugin.getDiagnosticService().reportTeleportFailure(operation, player, source, destination,
                 "傳送回報成功，但成功後驗證偵測到可疑狀態：" + verdict.reason(), null);
         if (player.isOnline()) {
             plugin.getMessageManager().send(player, "island.teleport-failed");

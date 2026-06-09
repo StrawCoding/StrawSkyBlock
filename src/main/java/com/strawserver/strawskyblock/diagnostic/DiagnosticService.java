@@ -89,20 +89,43 @@ public class DiagnosticService {
 
     /**
      * 傳送相關失敗的便捷入口：自動帶入玩家、來源/目的地座標、（可得時）島嶼資訊與例外。
+     *
+     * <p>注意：此多載以 {@code player.getLocation()} 當作來源座標。跨世界傳送「成功後」才偵測到
+     * 可疑狀態時，玩家當下位置已是目的地，會導致診斷的來源座標誤標為目的地（v1.0.11 觀察到的 bug）。
+     * 該情境請改用 {@link #reportTeleportFailure(String, Player, Location, Location, String, Throwable)}
+     * 並傳入「傳送前」擷取的原始來源座標。</p>
      */
     public void reportTeleportFailure(String operation,
                                       @Nullable Player player,
                                       @Nullable Location destination,
                                       String reason,
                                       @Nullable Throwable throwable) {
+        reportTeleportFailure(operation, player, null, destination, reason, throwable);
+    }
+
+    /**
+     * 傳送相關失敗的便捷入口（可指定原始來源座標）。
+     *
+     * @param source 傳送前擷取的原始來源座標；為 {@code null} 時退回使用 {@code player.getLocation()}。
+     *               跨世界傳送成功後的診斷必須帶入此值，否則來源會被誤標為目的地。
+     */
+    public void reportTeleportFailure(String operation,
+                                      @Nullable Player player,
+                                      @Nullable Location source,
+                                      @Nullable Location destination,
+                                      String reason,
+                                      @Nullable Throwable throwable) {
         DiagnosticReport.Builder builder = builder(operation).reason(reason);
         if (player != null) {
             builder.player(player.getName(), uuidString(player.getUniqueId()));
-            builder.source(formatLoc(player.getLocation()));
+            Location effectiveSource = source != null ? source : player.getLocation();
+            builder.source(formatLoc(effectiveSource));
             Island island = safeIslandOf(player.getUniqueId());
             if (island != null) {
                 builder.island(island.getIslandUuid().toString(), island.getOwnerName());
             }
+        } else if (source != null) {
+            builder.source(formatLoc(source));
         }
         if (destination != null) {
             builder.destination(formatLoc(destination));

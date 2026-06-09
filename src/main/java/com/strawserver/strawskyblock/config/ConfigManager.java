@@ -88,6 +88,47 @@ public class ConfigManager {
     }
 
     // ---- teleport (客戶端同步安全傳送) ----
+    /**
+     * 跨世界傳送策略（v1.0.12）：
+     * <ul>
+     *   <li>{@code PRELOAD_WAIT_SYNC}（預設）：預載並保留目的地區塊 → 等待數 tick →
+     *       主執行緒同步傳送 → 等待客戶端活動穩定 → 必要時才走恢復／最終 kick。
+     *       以「先確保區塊送達再傳送」為治本方向，降低客戶端卡在「載入地形」並減少重新同步轟炸。</li>
+     *   <li>{@code LEGACY_ASYNC_RESYNC}：v1.0.11 的舊行為（teleportAsync + 多次重新同步 + 驗證）。</li>
+     * </ul>
+     */
+    public String getTeleportStrategy() {
+        String value = config.getString("teleport.strategy",
+                com.strawserver.strawskyblock.util.IslandTeleportHelper.STRATEGY_PRELOAD_WAIT_SYNC);
+        return (value == null || value.isBlank())
+                ? com.strawserver.strawskyblock.util.IslandTeleportHelper.STRATEGY_PRELOAD_WAIT_SYNC
+                : value.trim();
+    }
+
+    /**
+     * PRELOAD_WAIT_SYNC 策略：預載／保留目的地區塊後，等待多少 tick 再執行同步傳送，
+     * 讓伺服器有時間將區塊資料準備好並（透過 chunk ticket）保持載入。
+     */
+    public long getTeleportPreloadWaitTicks() {
+        return Math.max(0L, config.getLong("teleport.preload-wait-ticks", 10L));
+    }
+
+    /**
+     * PRELOAD_WAIT_SYNC 策略：同步傳送完成後，等待多少 tick 觀察客戶端是否完成維度交握
+     * （送出主動封包／離開落點）後才進行成功後驗證；唯有此視窗過後仍可疑才會啟動恢復。
+     */
+    public long getTeleportClientActivityWaitTicks() {
+        return Math.max(1L, config.getLong("teleport.client-activity-wait-ticks", 40L));
+    }
+
+    /**
+     * PRELOAD_WAIT_SYNC 策略：跨世界傳送是否使用主執行緒同步傳送（{@code Player#teleport}）。
+     * 關閉時改用 {@code teleportAsync}（仍走預載／等待／客戶端活動驗證流程）。
+     */
+    public boolean isTeleportUseSyncCrossWorldTeleport() {
+        return config.getBoolean("teleport.use-sync-cross-world-teleport", true);
+    }
+
     /** 跨世界進入空島世界後，是否延遲重新同步座標／區塊，避免客戶端卡在「載入地形」。 */
     public boolean isTeleportResyncEnabled() {
         return config.getBoolean("teleport.resync-enabled", true);

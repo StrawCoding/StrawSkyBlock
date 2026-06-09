@@ -41,6 +41,29 @@ class DiagnosticReportTest {
     }
 
     @Test
+    void sourceLocationIsOriginalPreTeleportNotDestination() {
+        // v1.0.11 bug 回歸守門：island-home-teleport 成功後診斷的來源座標被誤標為目的地。
+        // 修正後，診斷必須保留「傳送前」的原始來源座標，與目的地明確不同。
+        String originalSource = "world@-9,63,23";
+        String destination = "straw_skyblock_world@0,103,0";
+        DiagnosticReport report = DiagnosticReport.builder("island-home-teleport")
+                .player("xuczxc100", "11111111-2222-3333-4444-555555555555")
+                .source(originalSource)
+                .destination(destination)
+                .reason("傳送回報成功，但成功後驗證偵測到可疑狀態")
+                .build();
+
+        List<String> lines = report.toLines();
+        String sourceLine = lines.stream()
+                .filter(l -> l.startsWith("來源座標:"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(sourceLine.contains(originalSource), "來源座標必須為傳送前的原始位置");
+        assertFalse(sourceLine.contains(destination), "來源座標不可被誤標為目的地");
+        assertTrue(lines.stream().anyMatch(l -> l.equals("目的地座標: " + destination)));
+    }
+
+    @Test
     void optionalFieldsAreOmittedWhenAbsent() {
         DiagnosticReport report = DiagnosticReport.builder("island-home-teleport")
                 .reason("目的地無效")

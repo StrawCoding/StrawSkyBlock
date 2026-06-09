@@ -1,3 +1,4 @@
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/config/ConfigManagerTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/diagnostic/DiagnosticReportTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/listener/PlayerRespawnListenerTest.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/test/java/com/strawserver/strawskyblock/robot/RobotLevelsTest.java

@@ -188,4 +188,82 @@ class IslandTeleportHelperTest {
     void spawnFromIslandOperationConstantIsStable() {
         assertEquals("spawn-from-island-teleport", ServerSpawnResolver.OPERATION);
     }
+
+    // ---- v1.0.12：PRELOAD_WAIT_SYNC 策略選擇 ----
+
+    @Test
+    void crossWorldDefaultsToPreloadWaitSyncStrategy() {
+        // null／空字串／未指定 → 跨世界一律採用新策略（治本預設）。
+        assertTrue(IslandTeleportHelper.usePreloadWaitSyncStrategy(true, null));
+        assertTrue(IslandTeleportHelper.usePreloadWaitSyncStrategy(true, ""));
+        assertTrue(IslandTeleportHelper.usePreloadWaitSyncStrategy(true, "   "));
+        assertTrue(IslandTeleportHelper.usePreloadWaitSyncStrategy(
+                true, IslandTeleportHelper.STRATEGY_PRELOAD_WAIT_SYNC));
+        assertTrue(IslandTeleportHelper.usePreloadWaitSyncStrategy(true, "preload_wait_sync"));
+    }
+
+    @Test
+    void sameWorldNeverUsesPreloadWaitSyncStrategy() {
+        // 同世界傳送不額外延遲，沿用快速路徑。
+        assertFalse(IslandTeleportHelper.usePreloadWaitSyncStrategy(false, null));
+        assertFalse(IslandTeleportHelper.usePreloadWaitSyncStrategy(
+                false, IslandTeleportHelper.STRATEGY_PRELOAD_WAIT_SYNC));
+    }
+
+    @Test
+    void legacyStrategyFallsBackToAsyncResync() {
+        assertFalse(IslandTeleportHelper.usePreloadWaitSyncStrategy(
+                true, IslandTeleportHelper.STRATEGY_LEGACY_ASYNC_RESYNC));
+        assertFalse(IslandTeleportHelper.usePreloadWaitSyncStrategy(true, "legacy_async_resync"));
+    }
+
+    @Test
+    void syncTeleportOnlyForCrossWorldWhenEnabled() {
+        assertTrue(IslandTeleportHelper.shouldUseSyncTeleport(true, true));
+        assertFalse(IslandTeleportHelper.shouldUseSyncTeleport(true, false));
+        assertFalse(IslandTeleportHelper.shouldUseSyncTeleport(false, true));
+        assertFalse(IslandTeleportHelper.shouldUseSyncTeleport(false, false));
+    }
+
+    // ---- v1.0.12：恢復必須延後到客戶端活動視窗之後 ----
+
+    @Test
+    void recoveryIsDelayedUntilAfterClientActivityWindow() {
+        long preload = 10L;
+        long activityWait = 40L;
+        long earliestRecovery = IslandTeleportHelper.computeRecoveryEarliestTick(preload, activityWait);
+        // 恢復／驗證最早只能發生於「同步傳送之後再加上整段客戶端活動視窗」。
+        assertEquals(50L, earliestRecovery);
+        assertTrue(earliestRecovery > preload,
+                "恢復必須晚於傳送時點（preload tick）");
+        assertTrue(earliestRecovery - preload >= activityWait,
+                "傳送到恢復之間必須涵蓋整段客戶端活動視窗");
+    }
+
+    @Test
+    void recoveryEarliestTickClampsNonPositiveInputs() {
+        // 客戶端活動視窗至少 1 tick，避免「傳送後立刻恢復」的退化情況。
+        assertEquals(1L, IslandTeleportHelper.computeRecoveryEarliestTick(0L, 0L));
+        assertEquals(1L, IslandTeleportHelper.computeRecoveryEarliestTick(-5L, -5L));
+    }
+
+    @Test
+    void recoveryAttemptedOnlyForCrossWorldSuspiciousWhenEnabled() {
+        assertTrue(IslandTeleportHelper.shouldAttemptRecovery(true, true, true));
+        assertFalse(IslandTeleportHelper.shouldAttemptRecovery(false, true, true));
+        assertFalse(IslandTeleportHelper.shouldAttemptRecovery(true, false, true));
+        assertFalse(IslandTeleportHelper.shouldAttemptRecovery(true, true, false));
+    }
+
+    @Test
+    void finalFallbackStillTriggersAfterPostRecoverySuspiciousUnderNewStrategy() {
+        // 新策略下，客戶端活動視窗過後仍可疑 → 有界恢復；恢復後再驗證仍可疑 → 最終 kick。
+        // 重現 live：onGround=false noMovement=true clientActivity=false 的跨世界凍結案例。
+        PostTeleportVerdict postRecovery = IslandTeleportHelper.evaluatePostTeleport(
+                true, true, true, true, true, false, true, true, false);
+        assertTrue(postRecovery.suspicious());
+        assertTrue(IslandTeleportHelper.shouldAttemptRecovery(true, postRecovery.suspicious(), true));
+        assertTrue(IslandTeleportHelper.shouldPerformFinalFallbackKick(
+                true, postRecovery.suspicious(), true));
+    }
 }

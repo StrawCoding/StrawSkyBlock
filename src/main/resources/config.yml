@@ -17,7 +17,20 @@ diagnostics:
 # 客戶端同步安全傳送：跨世界傳送（空島 ↔ 主世界／spawn）時，伺服器端常回報成功但客戶端
 # 仍卡在「載入地形」。以下設定提供區塊票證、多次重新同步、Paper 區塊送達檢查與卡住恢復。
 teleport:
-  # 跨世界傳送後，是否延遲重新同步座標／區塊封包。
+  # v1.0.12 跨世界傳送策略：
+  #   PRELOAD_WAIT_SYNC（預設，治本）：預載並保留目的地區塊 -> 等待數 tick -> 主執行緒同步傳送
+  #     -> 等待客戶端活動穩定 -> 必要時才走恢復／最終 kick。先確保區塊備妥再傳送，降低「載入地形」凍結，
+  #     並減少對重新同步轟炸的依賴。
+  #   LEGACY_ASYNC_RESYNC：v1.0.11 舊行為（teleportAsync + 多次重新同步 + 驗證）。
+  strategy: PRELOAD_WAIT_SYNC
+  # PRELOAD_WAIT_SYNC：預載／保留目的地區塊後，等待多少 tick 再執行同步傳送（20 tick = 1 秒）。
+  preload-wait-ticks: 10
+  # PRELOAD_WAIT_SYNC：同步傳送完成後，等待多少 tick 觀察客戶端是否完成維度交握後才驗證；
+  # 唯有此視窗過後仍可疑，才會啟動有界的卡住恢復與最終 kick。
+  client-activity-wait-ticks: 40
+  # PRELOAD_WAIT_SYNC：跨世界傳送是否使用主執行緒同步傳送（Player#teleport）；關閉時改用 teleportAsync。
+  use-sync-cross-world-teleport: true
+  # 跨世界傳送後，是否延遲重新同步座標／區塊封包（僅 LEGACY_ASYNC_RESYNC 策略使用）。
   resync-enabled: true
   # 第一次重新同步於傳送完成後多少 tick 執行（20 tick = 1 秒）。
   resync-delay-ticks: 20
