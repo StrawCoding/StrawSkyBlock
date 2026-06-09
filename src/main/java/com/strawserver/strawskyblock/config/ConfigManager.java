@@ -289,6 +289,14 @@ public class ConfigManager {
         return config.getBoolean("generator.fortune-support", false);
     }
 
+    /**
+     * 是否在玩家挖到刷石機礦物時，於聊天列顯示「挖出了 X」訊息。
+     * 預設關閉，避免連續挖刷石機時洗版。
+     */
+    public boolean isNotifyOreDrop() {
+        return config.getBoolean("generator.notify-ore-drop", false);
+    }
+
     public Map<String, Double> getGeneratorDrops() {
         Map<String, Double> result = new HashMap<>();
         ConfigurationSection section = config.getConfigurationSection("generator.drops");

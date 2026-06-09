@@ -101,6 +101,8 @@ generator:
   enabled: true
   only-generated-cobblestone: true
   fortune-support: false
+  # 挖到礦物時是否於聊天列顯示「挖出了 X」訊息（預設關閉，避免連挖洗版）
+  notify-ore-drop: false
   drops:
     COBBLESTONE: 57.4
     COAL: 13.0
