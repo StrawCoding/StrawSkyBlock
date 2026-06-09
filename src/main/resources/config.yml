@@ -136,61 +136,49 @@ animal-spawn:
 robot:
   # 小機器人：自動挖掘掃描範圍內的鵝卵石並存入連結的箱子。
   enabled: true
-  # 每位玩家（島嶼）可擁有的機器人數量上限。
-  max-per-island: 1
+  # 每位玩家可部署的機器人數量「預設」上限；可被 LuckPerms 權限節點覆寫：
+  #   strawskyblock.robot.limit.<n>（取玩家擁有的最大數值；無此類權限時採用本預設值）。
+  default-limit: 5
   # 於機器人商城購買一台機器人的費用（需啟用 Vault 經濟系統才會扣款；設為 0 則免費）。
   purchase-cost: 50000.0
   # 挖到的方塊是否套用刷石機掉落表（true = 有機率挖出礦物；false = 固定鵝卵石）。
   use-generator-drops: true
   # 掃描的垂直半徑（原點上下各幾格）。
   vertical-range: 1
-  # 新建機器人的預設等級。
-  default-speed-level: 1
-  default-length-level: 1
-  # 排程基礎週期（tick）；每台機器人實際挖掘間隔由速度等級決定，此值僅為掃描解析度。
+  # 新購買機器人的預設等級。
+  default-level: 1
+  # 排程基礎週期（tick）；每台機器人實際挖掘間隔由等級決定，此值僅為掃描解析度。
   task-period-ticks: 1
   # 找不到等級定義時的後備值。
   fallback-interval-ticks: 200
   fallback-range: 2
-  # 速度等級 L1~L6：interval-ticks 越小挖得越快（20 tick = 1 秒）。
-  # cost 為升級花費（需啟用 Vault 經濟系統才會扣款，否則僅為佔位）。
-  speed-levels:
+  # 統一等級 L1~L6：每升一級「挖得更快」且「掃描範圍更大」。
+  #   interval-ticks：挖掘間隔，越小越快（20 tick = 1 秒）。
+  #   range：水平掃描半徑（格），越大範圍越廣。
+  #   cost：升級到此等級所需花費（需啟用 Vault 經濟系統才會扣款，否則僅為佔位）。
+  levels:
     1:
       interval-ticks: 200
-      cost: 0
-    2:
-      interval-ticks: 160
-      cost: 1000
-    3:
-      interval-ticks: 120
-      cost: 2500
-    4:
-      interval-ticks: 80
-      cost: 5000
-    5:
-      interval-ticks: 40
-      cost: 10000
-    6:
-      interval-ticks: 20
-      cost: 20000
-  # 長度 / 範圍等級 L1~L6：range 為水平掃描半徑（格），越大掃描範圍越廣。
-  length-levels:
-    1:
       range: 2
       cost: 0
     2:
+      interval-ticks: 160
       range: 3
       cost: 1000
     3:
+      interval-ticks: 120
       range: 4
       cost: 2500
     4:
+      interval-ticks: 80
       range: 5
       cost: 5000
     5:
+      interval-ticks: 40
       range: 6
       cost: 10000
     6:
+      interval-ticks: 20
       range: 7
       cost: 20000
 

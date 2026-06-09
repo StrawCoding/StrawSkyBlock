@@ -5,8 +5,9 @@ import java.util.UUID;
 /**
  * 小機器人的記憶體模型，由 {@link RobotService} 持有，並對應資料庫 straw_skyblock_robots 一列。
  *
- * <p>每座島嶼以 {@code islandUuid} 作為鍵；以 {@code origin} 座標作為掃描中心並於該處生成
- * 盔甲架小人作為外觀，將挖到的掉落物存入 {@code chest} 連結的箱子。</p>
+ * <p>每台機器人以放置的 {@code origin} 座標（世界 + x/y/z）作為唯一鍵，於該處生成盔甲架小人作為
+ * 外觀，並將挖到的掉落物存入 {@code chest} 連結的箱子。同一座島可同時擁有多台機器人，
+ * 上限依放置者的 LuckPerms 權限決定。每台機器人有單一等級（L1~maxLevel），各自獨立升級。</p>
  */
 public class Robot {
 
@@ -25,8 +26,7 @@ public class Robot {
     private Integer chestY;
     private Integer chestZ;
 
-    private int speedLevel;
-    private int lengthLevel;
+    private int level;
     private boolean active;
 
     // ---- 執行期暫態（不需持久化）----
@@ -36,15 +36,7 @@ public class Robot {
     public Robot(UUID islandUuid, UUID ownerUuid, String worldName,
                  int originX, int originY, int originZ,
                  Integer chestX, Integer chestY, Integer chestZ,
-                 int speedLevel, int lengthLevel, boolean active) {
-        this(islandUuid, ownerUuid, worldName, originX, originY, originZ,
-                chestX, chestY, chestZ, speedLevel, lengthLevel, active, 0f);
-    }
-
-    public Robot(UUID islandUuid, UUID ownerUuid, String worldName,
-                 int originX, int originY, int originZ,
-                 Integer chestX, Integer chestY, Integer chestZ,
-                 int speedLevel, int lengthLevel, boolean active, float yaw) {
+                 int level, boolean active, float yaw) {
         this.islandUuid = islandUuid;
         this.ownerUuid = ownerUuid;
         this.worldName = worldName;
@@ -55,9 +47,19 @@ public class Robot {
         this.chestX = chestX;
         this.chestY = chestY;
         this.chestZ = chestZ;
-        this.speedLevel = speedLevel;
-        this.lengthLevel = lengthLevel;
+        this.level = level;
         this.active = active;
+    }
+
+    /**
+     * 由世界名與座標組出唯一鍵字串，用於記憶體索引與盔甲架 PDC 標記。
+     */
+    public static String locationKey(String worldName, int x, int y, int z) {
+        return worldName + ";" + x + ";" + y + ";" + z;
+    }
+
+    public String locationKey() {
+        return locationKey(worldName, originX, originY, originZ);
     }
 
     public UUID getIslandUuid() {
@@ -125,20 +127,12 @@ public class Robot {
         this.chestFullNotified = false;
     }
 
-    public int getSpeedLevel() {
-        return speedLevel;
+    public int getLevel() {
+        return level;
     }
 
-    public void setSpeedLevel(int speedLevel) {
-        this.speedLevel = speedLevel;
-    }
-
-    public int getLengthLevel() {
-        return lengthLevel;
-    }
-
-    public void setLengthLevel(int lengthLevel) {
-        this.lengthLevel = lengthLevel;
+    public void setLevel(int level) {
+        this.level = level;
     }
 
     public boolean isActive() {

@@ -12,20 +12,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RobotLevelsTest {
 
     private RobotLevels buildL1ToL6() {
-        Map<Integer, Long> speed = new LinkedHashMap<>();
-        Map<Integer, Double> speedCost = new LinkedHashMap<>();
-        Map<Integer, Integer> range = new LinkedHashMap<>();
-        Map<Integer, Double> rangeCost = new LinkedHashMap<>();
-        long[] intervals = {200, 160, 120, 80, 40, 20};
-        int[] ranges = {2, 3, 4, 5, 6, 7};
-        double[] costs = {0, 1000, 2500, 5000, 10000, 20000};
+        Map<Integer, Long> intervals = new LinkedHashMap<>();
+        Map<Integer, Integer> ranges = new LinkedHashMap<>();
+        Map<Integer, Double> costs = new LinkedHashMap<>();
+        long[] iv = {200, 160, 120, 80, 40, 20};
+        int[] rg = {2, 3, 4, 5, 6, 7};
+        double[] cost = {0, 1000, 2500, 5000, 10000, 20000};
         for (int level = 1; level <= 6; level++) {
-            speed.put(level, intervals[level - 1]);
-            speedCost.put(level, costs[level - 1]);
-            range.put(level, ranges[level - 1]);
-            rangeCost.put(level, costs[level - 1]);
+            intervals.put(level, iv[level - 1]);
+            ranges.put(level, rg[level - 1]);
+            costs.put(level, cost[level - 1]);
         }
-        return new RobotLevels(speed, speedCost, range, rangeCost, 200L, 2);
+        return new RobotLevels(intervals, ranges, costs, 200L, 2);
     }
 
     @Test
@@ -48,7 +46,6 @@ class RobotLevelsTest {
         assertEquals(1, levels.clampLevel(0));
         assertEquals(1, levels.clampLevel(-3));
         assertEquals(6, levels.clampLevel(99));
-        // 超出範圍時 lookup 退回裁切後的等級值
         assertEquals(200L, levels.intervalTicks(0));
         assertEquals(20L, levels.intervalTicks(100));
     }
@@ -68,9 +65,9 @@ class RobotLevelsTest {
     @Test
     void costLookup() {
         RobotLevels levels = buildL1ToL6();
-        assertEquals(0.0D, levels.speedUpgradeCost(1));
-        assertEquals(20000.0D, levels.speedUpgradeCost(6));
-        assertEquals(2500.0D, levels.lengthUpgradeCost(3));
+        assertEquals(0.0D, levels.upgradeCost(1));
+        assertEquals(2500.0D, levels.upgradeCost(3));
+        assertEquals(20000.0D, levels.upgradeCost(6));
     }
 
     @Test
@@ -84,18 +81,17 @@ class RobotLevelsTest {
 
     @Test
     void fallbackUsedWhenLevelUndefined() {
-        // 只定義 L1~L3，maxLevel 應為 3，超出者裁切後仍取得對應值
-        Map<Integer, Long> speed = new LinkedHashMap<>();
-        Map<Integer, Integer> range = new LinkedHashMap<>();
-        speed.put(1, 100L);
-        speed.put(2, 80L);
-        speed.put(3, 60L);
-        range.put(1, 2);
-        range.put(2, 3);
-        range.put(3, 4);
-        RobotLevels levels = new RobotLevels(speed, Map.of(), range, Map.of(), 999L, 9);
+        Map<Integer, Long> intervals = new LinkedHashMap<>();
+        Map<Integer, Integer> ranges = new LinkedHashMap<>();
+        intervals.put(1, 100L);
+        intervals.put(2, 80L);
+        intervals.put(3, 60L);
+        ranges.put(1, 2);
+        ranges.put(2, 3);
+        ranges.put(3, 4);
+        RobotLevels levels = new RobotLevels(intervals, ranges, Map.of(), 999L, 9);
         assertEquals(3, levels.getMaxLevel());
-        assertEquals(60L, levels.intervalTicks(5)); // 裁切到 3
+        assertEquals(60L, levels.intervalTicks(5));
         assertEquals(4, levels.range(5));
     }
 }

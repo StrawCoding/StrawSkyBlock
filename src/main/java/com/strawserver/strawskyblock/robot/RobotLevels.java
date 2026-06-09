@@ -5,43 +5,37 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * 小機器人等級定義表（純邏輯，不依賴 Bukkit）。
+ * 小機器人統一等級定義表（純邏輯，不依賴 Bukkit）。
  *
- * <p>包含速度等級（對應挖掘間隔 tick 數與升級花費）與長度 / 範圍等級（對應水平掃描半徑與
- * 升級花費）。等級採 1 ~ maxLevel 的玩家升級進程；本類別負責等級裁切、查值與升級合法性檢查，
- * 方便獨立單元測試。</p>
+ * <p>每台機器人只有單一等級 L1 ~ maxLevel：等級越高，挖掘間隔越短（越快）且水平掃描半徑越大；
+ * 每升一級需付出對應花費。本類別負責等級裁切、查值與升級合法性檢查，方便獨立單元測試。</p>
  */
 public final class RobotLevels {
 
     private final int maxLevel;
-    private final Map<Integer, Long> speedIntervalTicks;
-    private final Map<Integer, Double> speedCosts;
-    private final Map<Integer, Integer> lengthRanges;
-    private final Map<Integer, Double> lengthCosts;
+    private final Map<Integer, Long> intervalTicks;
+    private final Map<Integer, Integer> ranges;
+    private final Map<Integer, Double> costs;
 
     private final long fallbackInterval;
     private final int fallbackRange;
 
-    public RobotLevels(Map<Integer, Long> speedIntervalTicks,
-                       Map<Integer, Double> speedCosts,
-                       Map<Integer, Integer> lengthRanges,
-                       Map<Integer, Double> lengthCosts,
+    public RobotLevels(Map<Integer, Long> intervalTicks,
+                       Map<Integer, Integer> ranges,
+                       Map<Integer, Double> costs,
                        long fallbackInterval,
                        int fallbackRange) {
-        this.speedIntervalTicks = new TreeMap<>(speedIntervalTicks);
-        this.speedCosts = new TreeMap<>(speedCosts);
-        this.lengthRanges = new TreeMap<>(lengthRanges);
-        this.lengthCosts = new TreeMap<>(lengthCosts);
+        this.intervalTicks = new TreeMap<>(intervalTicks);
+        this.ranges = new TreeMap<>(ranges);
+        this.costs = new TreeMap<>(costs);
         this.fallbackInterval = Math.max(1L, fallbackInterval);
         this.fallbackRange = Math.max(0, fallbackRange);
 
-        // 以速度與長度等級的最大鍵值取交集，確保兩種等級進程一致。
-        int speedMax = this.speedIntervalTicks.isEmpty() ? 0
-                : Collections.max(this.speedIntervalTicks.keySet());
-        int lengthMax = this.lengthRanges.isEmpty() ? 0
-                : Collections.max(this.lengthRanges.keySet());
-        this.maxLevel = Math.max(1, Math.min(speedMax == 0 ? Integer.MAX_VALUE : speedMax,
-                lengthMax == 0 ? Integer.MAX_VALUE : lengthMax));
+        int intervalMax = this.intervalTicks.isEmpty() ? 0
+                : Collections.max(this.intervalTicks.keySet());
+        int rangeMax = this.ranges.isEmpty() ? 0
+                : Collections.max(this.ranges.keySet());
+        this.maxLevel = Math.max(1, Math.max(intervalMax, rangeMax));
     }
 
     public int getMaxLevel() {
@@ -66,10 +60,10 @@ public final class RobotLevels {
     }
 
     /**
-     * 取得指定速度等級對應的挖掘間隔（tick 數），未定義則回傳後備值。
+     * 取得指定等級對應的挖掘間隔（tick 數），未定義則回傳後備值。
      */
-    public long intervalTicks(int speedLevel) {
-        Long value = speedIntervalTicks.get(clampLevel(speedLevel));
+    public long intervalTicks(int level) {
+        Long value = intervalTicks.get(clampLevel(level));
         if (value == null || value < 1L) {
             return fallbackInterval;
         }
@@ -77,10 +71,10 @@ public final class RobotLevels {
     }
 
     /**
-     * 取得指定長度等級對應的水平掃描半徑，未定義則回傳後備值。
+     * 取得指定等級對應的水平掃描半徑，未定義則回傳後備值。
      */
-    public int range(int lengthLevel) {
-        Integer value = lengthRanges.get(clampLevel(lengthLevel));
+    public int range(int level) {
+        Integer value = ranges.get(clampLevel(level));
         if (value == null || value < 0) {
             return fallbackRange;
         }
@@ -88,18 +82,10 @@ public final class RobotLevels {
     }
 
     /**
-     * 取得升級到目標速度等級所需花費，未定義則為 0。
+     * 取得升級到目標等級所需花費，未定義則為 0。
      */
-    public double speedUpgradeCost(int targetLevel) {
-        Double value = speedCosts.get(clampLevel(targetLevel));
-        return value == null ? 0.0D : Math.max(0.0D, value);
-    }
-
-    /**
-     * 取得升級到目標長度等級所需花費，未定義則為 0。
-     */
-    public double lengthUpgradeCost(int targetLevel) {
-        Double value = lengthCosts.get(clampLevel(targetLevel));
+    public double upgradeCost(int targetLevel) {
+        Double value = costs.get(clampLevel(targetLevel));
         return value == null ? 0.0D : Math.max(0.0D, value);
     }
 

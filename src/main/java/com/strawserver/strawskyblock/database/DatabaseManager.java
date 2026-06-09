@@ -6,6 +6,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 
 /**
  * 管理資料庫連線與資料表初始化。
@@ -119,22 +120,23 @@ public class DatabaseManager {
                 """,
                 """
                 CREATE TABLE IF NOT EXISTS straw_skyblock_robots (
-                    island_uuid CHAR(36) PRIMARY KEY,
-                    owner_uuid CHAR(36) NOT NULL,
                     world_name VARCHAR(64) NOT NULL,
                     origin_x INT NOT NULL,
                     origin_y INT NOT NULL,
                     origin_z INT NOT NULL,
+                    island_uuid CHAR(36) NOT NULL,
+                    owner_uuid CHAR(36) NOT NULL,
                     yaw FLOAT NOT NULL DEFAULT 0,
                     chest_x INT NULL,
                     chest_y INT NULL,
                     chest_z INT NULL,
-                    speed_level INT NOT NULL DEFAULT 1,
-                    length_level INT NOT NULL DEFAULT 1,
+                    level INT NOT NULL DEFAULT 1,
                     active BOOLEAN NOT NULL DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    INDEX idx_robot_owner (owner_uuid)
+                    PRIMARY KEY (world_name, origin_x, origin_y, origin_z),
+                    INDEX idx_robot_owner (owner_uuid),
+                    INDEX idx_robot_island (island_uuid)
                 )
                 """
         };
@@ -149,10 +151,47 @@ public class DatabaseManager {
     }
 
     /**
-     * 對既有資料表執行相容性欄位補齊。重複執行為冪等（已存在的欄位會被忽略）。
+     * 對既有資料表執行相容性遷移。所有步驟皆為冪等，重複執行安全。
      */
     private void runMigrations() throws SQLException {
+        // v1.0.24：朝向欄位。
         addColumnIfMissing("straw_skyblock_robots", "yaw", "FLOAT NOT NULL DEFAULT 0");
+        // v1.0.25：統一等級制 + 多台機器人（以座標為主鍵）。
+        migrateRobotUnifiedLevel();
+    }
+
+    /**
+     * 將舊版「每島一台、island_uuid 主鍵、speed_level/length_level」的機器人表，
+     * 遷移為「以座標為主鍵、單一 level、支援多台」。
+     */
+    private void migrateRobotUnifiedLevel() throws SQLException {
+        String table = "straw_skyblock_robots";
+        // 1) 新增統一 level 欄位。
+        addColumnIfMissing(table, "level", "INT NOT NULL DEFAULT 1");
+        // 2) 由舊的 speed_level / length_level 推導 level（取兩者較大值），僅當兩欄皆存在時執行。
+        if (columnExists(table, "speed_level") && columnExists(table, "length_level")) {
+            try (Connection connection = getConnection();
+                 Statement statement = connection.createStatement()) {
+                statement.execute("UPDATE " + table
+                        + " SET level = GREATEST(speed_level, length_level) WHERE level <= 1");
+            }
+        }
+        // 3) island_uuid 由可空改為非空（舊版本即為 NOT NULL，這裡確保一致）。
+        // 4) 將主鍵由 island_uuid 改為 (world_name, origin_x, origin_y, origin_z)。
+        List<String> pk = primaryKeyColumns(table);
+        if (pk.size() == 1 && pk.get(0).equalsIgnoreCase("island_uuid")) {
+            try (Connection connection = getConnection();
+                 Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE " + table
+                        + " DROP PRIMARY KEY,"
+                        + " ADD PRIMARY KEY (world_name, origin_x, origin_y, origin_z)");
+                plugin.getLogger().info("資料表 " + table + " 主鍵已改為放置座標（支援多台機器人）。");
+            }
+            addIndexIfMissing(table, "idx_robot_island", "island_uuid");
+        }
+        // 5) 移除已不再使用的舊等級欄位。
+        dropColumnIfExists(table, "speed_level");
+        dropColumnIfExists(table, "length_level");
     }
 
     private void addColumnIfMissing(String table, String column, String definition) throws SQLException {
@@ -166,5 +205,63 @@ public class DatabaseManager {
                 throw e;
             }
         }
+    }
+
+    private void dropColumnIfExists(String table, String column) throws SQLException {
+        if (!columnExists(table, column)) {
+            return;
+        }
+        try (Connection connection = getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + table + " DROP COLUMN " + column);
+            plugin.getLogger().info("資料表 " + table + " 已移除舊欄位 " + column + "。");
+        } catch (SQLException e) {
+            // 1091 = can't drop；欄位已不存在，忽略。
+            if (e.getErrorCode() != 1091) {
+                throw e;
+            }
+        }
+    }
+
+    private void addIndexIfMissing(String table, String indexName, String column) throws SQLException {
+        try (Connection connection = getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + table + " ADD INDEX " + indexName + " (" + column + ")");
+        } catch (SQLException e) {
+            // 1061 = duplicate key name：索引已存在，忽略。
+            if (e.getErrorCode() != 1061) {
+                throw e;
+            }
+        }
+    }
+
+    private boolean columnExists(String table, String column) throws SQLException {
+        String sql = "SELECT 1 FROM information_schema.COLUMNS "
+                + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+        try (Connection connection = getConnection();
+             java.sql.PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, table);
+            ps.setString(2, column);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private List<String> primaryKeyColumns(String table) throws SQLException {
+        List<String> columns = new java.util.ArrayList<>();
+        String sql = "SELECT COLUMN_NAME FROM information_schema.STATISTICS "
+                + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = 'PRIMARY' "
+                + "ORDER BY SEQ_IN_INDEX";
+        try (Connection connection = getConnection();
+             java.sql.PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, table);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    columns.add(rs.getString(1));
+                }
+            }
+        }
+        return columns;
     }
 }

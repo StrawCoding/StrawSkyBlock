@@ -40,8 +40,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
     private static final List<String> ADMIN_SUBS = Arrays.asList(
             "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug", "diag");
 
-    private static final List<String> ROBOT_SUBS = Arrays.asList(
-            "speed", "length", "start", "stop", "info", "help");
+    private static final List<String> ROBOT_SUBS = Arrays.asList("help");
 
     private final StrawSkyBlockPlugin plugin;
 
@@ -207,201 +206,12 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             plugin.getMessageManager().send(player, "robot.disabled");
             return;
         }
-        if (args.length < 2) {
-            plugin.getMessageManager().send(player, "robot.usage");
-            return;
-        }
-
-        // help 不需在島上即可查看。
-        if (args[1].equalsIgnoreCase("help")) {
+        // help 顯示使用說明；其餘管理（購買 / 升級 / 啟停）皆改由機器人商城 GUI 進行。
+        if (args.length >= 2 && args[1].equalsIgnoreCase("help")) {
             plugin.getRobotService().sendHelp(player);
             return;
         }
-
-        // 機器人以「玩家所站位置的島嶼」為操作對象，必須在空島世界且為受信任成員。
-        Island island = plugin.getIslandService().getByLocation(player.getLocation());
-        if (island == null) {
-            plugin.getMessageManager().send(player, "robot.not-on-island");
-            return;
-        }
-        if (!island.getRole(player.getUniqueId()).isTrusted()) {
-            plugin.getMessageManager().send(player, "robot.not-trusted");
-            return;
-        }
-
-        String sub = args[1].toLowerCase();
-        switch (sub) {
-            case "speed" -> robotUpgradeSpeed(player, island, args);
-            case "length" -> robotUpgradeLength(player, island, args);
-            case "start" -> robotStart(player, island);
-            case "stop" -> robotStop(player, island);
-            case "info" -> robotInfo(player, island);
-            default -> plugin.getMessageManager().send(player, "robot.usage");
-        }
-    }
-
-    private com.strawserver.strawskyblock.robot.Robot requireRobot(Player player, Island island) {
-        com.strawserver.strawskyblock.robot.Robot robot =
-                plugin.getRobotService().getByIsland(island.getIslandUuid());
-        if (robot == null) {
-            plugin.getMessageManager().send(player, "robot.none");
-        }
-        return robot;
-    }
-
-    private Integer parseLevelArg(Player player, String[] args) {
-        if (args.length < 3) {
-            plugin.getMessageManager().send(player, "robot.level-usage");
-            return null;
-        }
-        try {
-            return Integer.parseInt(args[2]);
-        } catch (NumberFormatException e) {
-            plugin.getMessageManager().send(player, "robot.level-usage");
-            return null;
-        }
-    }
-
-    private void robotUpgradeSpeed(Player player, Island island, String[] args) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        Integer target = parseLevelArg(player, args);
-        if (target == null) {
-            return;
-        }
-        var levels = plugin.getRobotService().getLevels();
-        var result = levels.checkUpgrade(robot.getSpeedLevel(), target);
-        if (!handleUpgradeResult(player, result, levels.getMaxLevel())) {
-            return;
-        }
-        double cost = levels.speedUpgradeCost(target);
-        if (!chargeCost(player, cost)) {
-            return;
-        }
-        robot.setSpeedLevel(target);
-        plugin.getRobotService().saveAsync(robot);
-        plugin.getMessageManager().send(player, "robot.speed-upgraded",
-                MessageManager.placeholders(
-                        "level", String.valueOf(target),
-                        "interval", String.valueOf(levels.intervalTicks(target))));
-    }
-
-    private void robotUpgradeLength(Player player, Island island, String[] args) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        Integer target = parseLevelArg(player, args);
-        if (target == null) {
-            return;
-        }
-        var levels = plugin.getRobotService().getLevels();
-        var result = levels.checkUpgrade(robot.getLengthLevel(), target);
-        if (!handleUpgradeResult(player, result, levels.getMaxLevel())) {
-            return;
-        }
-        double cost = levels.lengthUpgradeCost(target);
-        if (!chargeCost(player, cost)) {
-            return;
-        }
-        robot.setLengthLevel(target);
-        plugin.getRobotService().saveAsync(robot);
-        plugin.getMessageManager().send(player, "robot.length-upgraded",
-                MessageManager.placeholders(
-                        "level", String.valueOf(target),
-                        "range", String.valueOf(levels.range(target))));
-    }
-
-    /**
-     * @return true 表示驗證通過可繼續升級。
-     */
-    private boolean handleUpgradeResult(Player player,
-                                        com.strawserver.strawskyblock.robot.UpgradeResult result, int max) {
-        switch (result) {
-            case OK -> {
-                return true;
-            }
-            case OUT_OF_RANGE -> plugin.getMessageManager().send(player, "robot.level-out-of-range",
-                    MessageManager.placeholders("max", String.valueOf(max)));
-            case NOT_HIGHER -> plugin.getMessageManager().send(player, "robot.level-not-higher");
-            case ALREADY_MAX -> plugin.getMessageManager().send(player, "robot.level-maxed",
-                    MessageManager.placeholders("max", String.valueOf(max)));
-        }
-        return false;
-    }
-
-    /**
-     * 升級花費 hook：若經濟系統可用且花費 &gt; 0 則扣款，否則略過（保留為未來付費功能掛點）。
-     *
-     * @return true 表示可繼續（免費或扣款成功）。
-     */
-    private boolean chargeCost(Player player, double cost) {
-        if (cost <= 0) {
-            return true;
-        }
-        var economy = plugin.getEconomyHook();
-        if (economy == null || !economy.isEnabled()) {
-            // 未啟用經濟系統時，視為免費（花費僅為設定佔位）。
-            return true;
-        }
-        if (!economy.has(player, cost)) {
-            plugin.getMessageManager().send(player, "robot.not-enough-money",
-                    MessageManager.placeholders("cost", economy.format(cost)));
-            return false;
-        }
-        economy.withdraw(player, cost);
-        return true;
-    }
-
-    private void robotStart(Player player, Island island) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        if (!robot.hasChest()) {
-            plugin.getMessageManager().send(player, "robot.error-no-chest");
-            return;
-        }
-        robot.setActive(true);
-        robot.setChestFullNotified(false);
-        plugin.getRobotService().saveAsync(robot);
-        plugin.getMessageManager().send(player, "robot.started");
-    }
-
-    private void robotStop(Player player, Island island) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        robot.setActive(false);
-        plugin.getRobotService().saveAsync(robot);
-        plugin.getMessageManager().send(player, "robot.stopped");
-    }
-
-    private void robotInfo(Player player, Island island) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        var levels = plugin.getRobotService().getLevels();
-        String chest = robot.hasChest()
-                ? robot.getChestX() + ", " + robot.getChestY() + ", " + robot.getChestZ()
-                : "未設定";
-        player.sendMessage(plugin.getMessageManager().get("robot.info-header"));
-        robotInfoLine(player, "原點", robot.getOriginX() + ", " + robot.getOriginY() + ", " + robot.getOriginZ());
-        robotInfoLine(player, "箱子", chest);
-        robotInfoLine(player, "速度等級", "L" + robot.getSpeedLevel() + " / L" + levels.getMaxLevel()
-                + "（每 " + levels.intervalTicks(robot.getSpeedLevel()) + " tick 挖一格）");
-        robotInfoLine(player, "範圍等級", "L" + robot.getLengthLevel() + " / L" + levels.getMaxLevel()
-                + "（半徑 " + levels.range(robot.getLengthLevel()) + " 格）");
-        robotInfoLine(player, "狀態", robot.isActive() ? "運作中" : "停止");
-    }
-
-    private void robotInfoLine(Player player, String key, String value) {
-        player.sendMessage(plugin.getMessageManager().get("admin.info-line",
-                MessageManager.placeholders("key", key, "value", value)));
+        plugin.getMessageManager().send(player, "robot.usage");
     }
 
     // =========================================================================
@@ -604,10 +414,6 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("robot")) {
             return filter(ROBOT_SUBS, args[1]);
-        }
-        if (args.length == 3 && args[0].equalsIgnoreCase("robot")
-                && (args[1].equalsIgnoreCase("speed") || args[1].equalsIgnoreCase("length"))) {
-            return filter(Arrays.asList("1", "2", "3", "4", "5", "6"), args[2]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("invite")
                 || args[0].equalsIgnoreCase("visit") || args[0].equalsIgnoreCase("kick"))) {

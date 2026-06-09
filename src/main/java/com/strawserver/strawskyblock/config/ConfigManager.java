@@ -363,8 +363,11 @@ public class ConfigManager {
         return config.getBoolean("robot.enabled", true);
     }
 
-    public int getRobotMaxPerIsland() {
-        return config.getInt("robot.max-per-island", 1);
+    /**
+     * 機器人數量上限的預設值（當玩家沒有 strawskyblock.robot.limit.&lt;n&gt; 權限時採用）。
+     */
+    public int getRobotDefaultLimit() {
+        return Math.max(0, config.getInt("robot.default-limit", 5));
     }
 
     /**
@@ -382,12 +385,8 @@ public class ConfigManager {
         return Math.max(0, config.getInt("robot.vertical-range", 1));
     }
 
-    public int getRobotDefaultSpeedLevel() {
-        return Math.max(1, config.getInt("robot.default-speed-level", 1));
-    }
-
-    public int getRobotDefaultLengthLevel() {
-        return Math.max(1, config.getInt("robot.default-length-level", 1));
+    public int getRobotDefaultLevel() {
+        return Math.max(1, config.getInt("robot.default-level", 1));
     }
 
     public long getRobotTaskPeriodTicks() {
@@ -402,9 +401,9 @@ public class ConfigManager {
         return Math.max(0, config.getInt("robot.fallback-range", 2));
     }
 
-    public Map<Integer, Long> getRobotSpeedIntervals() {
+    public Map<Integer, Long> getRobotLevelIntervals() {
         Map<Integer, Long> result = new HashMap<>();
-        ConfigurationSection section = config.getConfigurationSection("robot.speed-levels");
+        ConfigurationSection section = config.getConfigurationSection("robot.levels");
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer level = parseLevel(key);
@@ -416,23 +415,9 @@ public class ConfigManager {
         return result;
     }
 
-    public Map<Integer, Double> getRobotSpeedCosts() {
-        Map<Integer, Double> result = new HashMap<>();
-        ConfigurationSection section = config.getConfigurationSection("robot.speed-levels");
-        if (section != null) {
-            for (String key : section.getKeys(false)) {
-                Integer level = parseLevel(key);
-                if (level != null) {
-                    result.put(level, section.getDouble(key + ".cost", 0.0D));
-                }
-            }
-        }
-        return result;
-    }
-
-    public Map<Integer, Integer> getRobotLengthRanges() {
+    public Map<Integer, Integer> getRobotLevelRanges() {
         Map<Integer, Integer> result = new HashMap<>();
-        ConfigurationSection section = config.getConfigurationSection("robot.length-levels");
+        ConfigurationSection section = config.getConfigurationSection("robot.levels");
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer level = parseLevel(key);
@@ -444,9 +429,9 @@ public class ConfigManager {
         return result;
     }
 
-    public Map<Integer, Double> getRobotLengthCosts() {
+    public Map<Integer, Double> getRobotLevelCosts() {
         Map<Integer, Double> result = new HashMap<>();
-        ConfigurationSection section = config.getConfigurationSection("robot.length-levels");
+        ConfigurationSection section = config.getConfigurationSection("robot.levels");
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer level = parseLevel(key);

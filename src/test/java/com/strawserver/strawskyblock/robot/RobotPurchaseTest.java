@@ -7,38 +7,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class RobotPurchaseTest {
 
     @Test
-    void okWhenNoRobotUnderLimitAndCanPay() {
+    void okWhenUnderLimit() {
         assertEquals(RobotPurchase.Result.OK,
-                RobotPurchase.evaluate(false, 0, 1, true, true));
+                RobotPurchase.evaluate(0, 5, true, true));
     }
 
     @Test
-    void okWhenFreeRegardlessOfFunds() {
+    void okWhenFreeAndNoEconomy() {
         assertEquals(RobotPurchase.Result.OK,
-                RobotPurchase.evaluate(false, 0, 1, false, false));
+                RobotPurchase.evaluate(0, 5, false, false));
     }
 
     @Test
-    void alreadyExistsTakesPriority() {
-        assertEquals(RobotPurchase.Result.ALREADY_EXISTS,
-                RobotPurchase.evaluate(true, 0, 1, true, true));
-    }
-
-    @Test
-    void limitReachedWhenOwnedAtMax() {
+    void limitReached() {
         assertEquals(RobotPurchase.Result.LIMIT_REACHED,
-                RobotPurchase.evaluate(false, 1, 1, true, true));
+                RobotPurchase.evaluate(5, 5, true, true));
     }
 
     @Test
-    void unlimitedWhenMaxNonPositive() {
+    void unlimitedWhenLimitZero() {
         assertEquals(RobotPurchase.Result.OK,
-                RobotPurchase.evaluate(false, 99, 0, true, true));
+                RobotPurchase.evaluate(99, 0, true, true));
     }
 
     @Test
-    void notEnoughMoneyWhenChargeRequiredAndNoFunds() {
+    void notEnoughMoney() {
         assertEquals(RobotPurchase.Result.NOT_ENOUGH_MONEY,
-                RobotPurchase.evaluate(false, 0, 1, true, false));
+                RobotPurchase.evaluate(0, 5, true, false));
     }
 }

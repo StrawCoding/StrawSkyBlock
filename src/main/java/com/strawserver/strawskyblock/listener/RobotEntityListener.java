@@ -22,8 +22,6 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.UUID;
-
 /**
  * 小機器人盔甲架小人的維護、保護與互動：
  * <ul>
@@ -68,16 +66,12 @@ public class RobotEntityListener implements Listener {
                 || !(byEntity.getDamager() instanceof Player player)) {
             return;
         }
-        UUID islandUuid = plugin.getRobotService().getStandIslandPublic(entity);
-        if (islandUuid == null) {
-            return;
-        }
-        Robot robot = plugin.getRobotService().getByIsland(islandUuid);
+        Robot robot = plugin.getRobotService().getRobotByStand(entity);
         if (robot == null) {
             entity.remove();
             return;
         }
-        Island island = plugin.getIslandService().getCache().getByUuid(islandUuid);
+        Island island = plugin.getIslandService().getCache().getByUuid(robot.getIslandUuid());
         if (island == null || !island.getRole(player.getUniqueId()).isTrusted()) {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
@@ -100,21 +94,17 @@ public class RobotEntityListener implements Listener {
         }
         event.setCancelled(true);
         Player player = event.getPlayer();
-        UUID islandUuid = plugin.getRobotService().getStandIslandPublic(entity);
-        if (islandUuid == null) {
-            return;
-        }
-        Robot robot = plugin.getRobotService().getByIsland(islandUuid);
+        Robot robot = plugin.getRobotService().getRobotByStand(entity);
         if (robot == null) {
             entity.remove();
             return;
         }
-        Island island = plugin.getIslandService().getCache().getByUuid(islandUuid);
+        Island island = plugin.getIslandService().getCache().getByUuid(robot.getIslandUuid());
         if (island == null || !island.getRole(player.getUniqueId()).isTrusted()) {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
         }
-        plugin.getRobotService().beginChestBind(player.getUniqueId(), islandUuid);
+        plugin.getRobotService().beginChestBind(player.getUniqueId(), robot.locationKey());
         plugin.getMessageManager().send(player, "robot.bind-start");
     }
 
@@ -148,11 +138,11 @@ public class RobotEntityListener implements Listener {
     }
 
     private void handleChestBind(Player player, Block clicked) {
-        UUID islandUuid = plugin.getRobotService().consumeChestBind(player.getUniqueId());
-        if (islandUuid == null) {
+        String robotKey = plugin.getRobotService().consumeChestBind(player.getUniqueId());
+        if (robotKey == null) {
             return;
         }
-        Robot robot = plugin.getRobotService().getByIsland(islandUuid);
+        Robot robot = plugin.getRobotService().getByLocationKey(robotKey);
         if (robot == null) {
             plugin.getMessageManager().send(player, "robot.none");
             return;
@@ -161,7 +151,7 @@ public class RobotEntityListener implements Listener {
             plugin.getMessageManager().send(player, "robot.chest-not-container");
             return;
         }
-        Island island = plugin.getIslandService().getCache().getByUuid(islandUuid);
+        Island island = plugin.getIslandService().getCache().getByUuid(robot.getIslandUuid());
         if (island == null || !island.contains(clicked.getLocation())) {
             plugin.getMessageManager().send(player, "robot.chest-outside");
             return;
@@ -190,16 +180,25 @@ public class RobotEntityListener implements Listener {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
         }
-        if (plugin.getRobotService().getByIsland(island.getIslandUuid()) != null) {
+        // 該位置已有機器人。
+        if (plugin.getRobotService().getByLocation(
+                target.getWorld().getName(), target.getX(), target.getY(), target.getZ()) != null) {
             plugin.getMessageManager().send(player, "robot.already-exists");
             return;
         }
-        int speed = RobotItem.getSpeedLevel(plugin, inHand);
-        int length = RobotItem.getLengthLevel(plugin, inHand);
+        // 依 LuckPerms 上限檢查玩家可部署數量。
+        int limit = plugin.getRobotService().getRobotLimit(player);
+        int owned = plugin.getRobotService().countByOwner(player.getUniqueId());
+        if (owned >= limit) {
+            plugin.getMessageManager().send(player, "robot.limit-reached",
+                    MessageManager.placeholders("max", String.valueOf(limit)));
+            return;
+        }
+        int level = RobotItem.getLevel(plugin, inHand);
         // 小人面向放置玩家的當前朝向。
         float yaw = player.getLocation().getYaw();
         plugin.getRobotService().createRobot(island, player.getUniqueId(),
-                target.getX(), target.getY(), target.getZ(), speed, length, yaw);
+                target.getX(), target.getY(), target.getZ(), level, yaw);
         inHand.setAmount(inHand.getAmount() - 1);
         plugin.getMessageManager().send(player, "robot.placed",
                 MessageManager.placeholders(

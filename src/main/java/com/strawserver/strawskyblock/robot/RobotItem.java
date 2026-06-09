@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 小機器人的「可放置物品」形態。
  *
- * <p>透過 PersistentDataContainer 標記為機器人物品，並保存速度 / 範圍等級，
+ * <p>透過 PersistentDataContainer 標記為機器人物品，並保存統一等級，
  * 讓玩家拿起再放置時保留既有升級。</p>
  */
 public final class RobotItem {
@@ -26,36 +26,38 @@ public final class RobotItem {
         return new NamespacedKey(plugin, "robot_item");
     }
 
-    private static NamespacedKey speedKey(StrawSkyBlockPlugin plugin) {
+    private static NamespacedKey levelKey(StrawSkyBlockPlugin plugin) {
+        return new NamespacedKey(plugin, "robot_item_level");
+    }
+
+    // 舊版本（v1.0.24 以前）的速度 / 範圍鍵，僅用於讀取相容。
+    private static NamespacedKey legacySpeedKey(StrawSkyBlockPlugin plugin) {
         return new NamespacedKey(plugin, "robot_item_speed");
     }
 
-    private static NamespacedKey lengthKey(StrawSkyBlockPlugin plugin) {
+    private static NamespacedKey legacyLengthKey(StrawSkyBlockPlugin plugin) {
         return new NamespacedKey(plugin, "robot_item_length");
     }
 
     /**
      * 建立一個機器人物品。
      */
-    public static ItemStack create(StrawSkyBlockPlugin plugin, int speedLevel, int lengthLevel) {
+    public static ItemStack create(StrawSkyBlockPlugin plugin, int level) {
         ItemStack item = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(MiniMessageUtil.parse("<aqua><bold>⚙ 小機器人").decoration(
+            meta.displayName(MiniMessageUtil.parse("<aqua><bold>⚙ 小機器人 L" + level).decoration(
                     net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
             meta.lore(List.of(
                     MiniMessageUtil.parse("<gray>放置於自己的島上以部署。").decoration(
                             net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                    MiniMessageUtil.parse("<gray>速度等級：<yellow>L" + speedLevel).decoration(
-                            net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                    MiniMessageUtil.parse("<gray>範圍等級：<yellow>L" + lengthLevel).decoration(
+                    MiniMessageUtil.parse("<gray>等級：<yellow>L" + level).decoration(
                             net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
                     MiniMessageUtil.parse("<dark_gray>右鍵地面放置").decoration(
                             net.kyori.adventure.text.format.TextDecoration.ITALIC, false)));
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             pdc.set(markerKey(plugin), PersistentDataType.BYTE, (byte) 1);
-            pdc.set(speedKey(plugin), PersistentDataType.INTEGER, speedLevel);
-            pdc.set(lengthKey(plugin), PersistentDataType.INTEGER, lengthLevel);
+            pdc.set(levelKey(plugin), PersistentDataType.INTEGER, level);
             item.setItemMeta(meta);
         }
         return item;
@@ -70,21 +72,24 @@ public final class RobotItem {
                 && meta.getPersistentDataContainer().has(markerKey(plugin), PersistentDataType.BYTE);
     }
 
-    public static int getSpeedLevel(StrawSkyBlockPlugin plugin, ItemStack item) {
+    /**
+     * 讀取物品等級；相容舊版本（取舊速度 / 範圍鍵的較大值）。
+     */
+    public static int getLevel(StrawSkyBlockPlugin plugin, ItemStack item) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return 1;
         }
-        Integer v = meta.getPersistentDataContainer().get(speedKey(plugin), PersistentDataType.INTEGER);
-        return v == null ? 1 : v;
-    }
-
-    public static int getLengthLevel(StrawSkyBlockPlugin plugin, ItemStack item) {
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) {
-            return 1;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        Integer v = pdc.get(levelKey(plugin), PersistentDataType.INTEGER);
+        if (v != null) {
+            return Math.max(1, v);
         }
-        Integer v = meta.getPersistentDataContainer().get(lengthKey(plugin), PersistentDataType.INTEGER);
-        return v == null ? 1 : v;
+        Integer speed = pdc.get(legacySpeedKey(plugin), PersistentDataType.INTEGER);
+        Integer length = pdc.get(legacyLengthKey(plugin), PersistentDataType.INTEGER);
+        if (speed != null || length != null) {
+            return Math.max(1, Math.max(speed == null ? 1 : speed, length == null ? 1 : length));
+        }
+        return 1;
     }
 }

@@ -44,8 +44,7 @@ public class RobotRepository {
                         rs.getInt("origin_y"),
                         rs.getInt("origin_z"),
                         chestX, chestY, chestZ,
-                        rs.getInt("speed_level"),
-                        rs.getInt("length_level"),
+                        rs.getInt("level"),
                         rs.getBoolean("active"),
                         rs.getFloat("yaw"));
                 result.add(robot);
@@ -55,39 +54,55 @@ public class RobotRepository {
     }
 
     /**
-     * 以 UPSERT 寫入完整機器人狀態（建立或更新皆可）。
+     * 以 UPSERT 寫入完整機器人狀態（建立或更新皆可，主鍵為放置座標）。
      */
     public void save(Robot robot) throws SQLException {
         String sql = "INSERT INTO straw_skyblock_robots " +
-                "(island_uuid, owner_uuid, world_name, origin_x, origin_y, origin_z, yaw, " +
-                "chest_x, chest_y, chest_z, speed_level, length_level, active) " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) " +
+                "(world_name, origin_x, origin_y, origin_z, island_uuid, owner_uuid, yaw, " +
+                "chest_x, chest_y, chest_z, level, active) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) " +
                 "ON DUPLICATE KEY UPDATE " +
-                "owner_uuid=VALUES(owner_uuid), world_name=VALUES(world_name), " +
-                "origin_x=VALUES(origin_x), origin_y=VALUES(origin_y), origin_z=VALUES(origin_z), " +
-                "yaw=VALUES(yaw), " +
+                "island_uuid=VALUES(island_uuid), owner_uuid=VALUES(owner_uuid), yaw=VALUES(yaw), " +
                 "chest_x=VALUES(chest_x), chest_y=VALUES(chest_y), chest_z=VALUES(chest_z), " +
-                "speed_level=VALUES(speed_level), length_level=VALUES(length_level), active=VALUES(active)";
+                "level=VALUES(level), active=VALUES(active)";
         try (Connection c = db().getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, robot.getIslandUuid().toString());
-            ps.setString(2, robot.getOwnerUuid().toString());
-            ps.setString(3, robot.getWorldName());
-            ps.setInt(4, robot.getOriginX());
-            ps.setInt(5, robot.getOriginY());
-            ps.setInt(6, robot.getOriginZ());
+            ps.setString(1, robot.getWorldName());
+            ps.setInt(2, robot.getOriginX());
+            ps.setInt(3, robot.getOriginY());
+            ps.setInt(4, robot.getOriginZ());
+            ps.setString(5, robot.getIslandUuid().toString());
+            ps.setString(6, robot.getOwnerUuid().toString());
             ps.setFloat(7, robot.getYaw());
             setNullableInt(ps, 8, robot.getChestX());
             setNullableInt(ps, 9, robot.getChestY());
             setNullableInt(ps, 10, robot.getChestZ());
-            ps.setInt(11, robot.getSpeedLevel());
-            ps.setInt(12, robot.getLengthLevel());
-            ps.setBoolean(13, robot.isActive());
+            ps.setInt(11, robot.getLevel());
+            ps.setBoolean(12, robot.isActive());
             ps.executeUpdate();
         }
     }
 
-    public void delete(UUID islandUuid) throws SQLException {
+    /**
+     * 依放置座標刪除單一機器人。
+     */
+    public void deleteByLocation(String worldName, int x, int y, int z) throws SQLException {
+        String sql = "DELETE FROM straw_skyblock_robots "
+                + "WHERE world_name=? AND origin_x=? AND origin_y=? AND origin_z=?";
+        try (Connection c = db().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, worldName);
+            ps.setInt(2, x);
+            ps.setInt(3, y);
+            ps.setInt(4, z);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * 刪除某座島嶼的所有機器人（島嶼被刪除時呼叫）。
+     */
+    public void deleteByIsland(UUID islandUuid) throws SQLException {
         String sql = "DELETE FROM straw_skyblock_robots WHERE island_uuid=?";
         try (Connection c = db().getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {

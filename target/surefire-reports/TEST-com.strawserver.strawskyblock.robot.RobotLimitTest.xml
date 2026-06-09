@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.026" tests="28" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.01" tests="7" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -54,32 +54,11 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="clientAckObservedNearLandingIsHealthy" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.003"/>
-  <testcase name="airborneWithMovementIsNotSuspiciousWhenChunkSent" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="syncTeleportOnlyForCrossWorldWhenEnabled" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="multipleProblemsAreCombinedInReason" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="serverHealthyButNoClientAckNearLandingIsSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="stuckAtLandingWithUnloadedChunkIsSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="recoveryIsDelayedUntilAfterClientActivityWindow" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="airborneWithoutMovementNearSolidGroundIsSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="crossWorldDefaultsToPreloadWaitSyncStrategy" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="spawnFromIslandOperationConstantIsStable" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="recoveryAttemptedOnlyForCrossWorldSuspiciousWhenEnabled" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="spawnFromIslandOnGroundFalseNoMovementIsEligibleForFinalFallback" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="sameWorldNeverUsesPreloadWaitSyncStrategy" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="chunkNotSentToClientIsSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="finalFallbackStillTriggersAfterPostRecoverySuspiciousUnderNewStrategy" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="postRecoveryDiagnosticReasonDocumentsKickFallback" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="recoveryEarliestTickClampsNonPositiveInputs" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="stuckAtLandingWithoutGroundIsSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="sameWorldRecoverySuspiciousDoesNotTriggerFinalFallbackKick" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="playerWhoMovedAwayIsHealthyEvenWithUnloadedLandingChunk" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="finalFallbackKickTriggersOnlyForCrossWorldPostRecoverySuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="chunkCoordinatesMatchBlockCoordinates" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="healthyLandingIsNotSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="defaultChunkRadiusIsReasonableForPlayerView" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="offlinePlayerIsNeverSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
-  <testcase name="wrongWorldAfterSuccessIsSuspicious" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="noClientAckButPlayerMovedAwayIsHealthy" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.001"/>
-  <testcase name="legacyStrategyFallsBackToAsyncResync" classname="com.strawserver.strawskyblock.util.IslandTeleportHelperTest" time="0.0"/>
+  <testcase name="permissionCanLowerBelowDefault" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
+  <testcase name="caseInsensitivePrefix" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
+  <testcase name="unrelatedPermissionsUseDefault" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
+  <testcase name="wildcardOrInvalidNodesIgnored" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
+  <testcase name="noPermissionUsesDefault" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
+  <testcase name="takesMaxNumericNode" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
+  <testcase name="zeroDefaultClampedNonNegative" classname="com.strawserver.strawskyblock.robot.RobotLimitTest" time="0.001"/>
 </testsuite>
