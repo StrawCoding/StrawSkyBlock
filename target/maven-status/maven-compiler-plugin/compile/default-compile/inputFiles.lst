@@ -18,6 +18,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/gui/IslandMainGui.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/gui/IslandMemberGui.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/gui/IslandSettingsGui.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/gui/IslandShopGui.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/Island.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandCache.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandFlag.java
@@ -48,6 +49,8 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotScanArea.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotService.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/UpgradeResult.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/shop/ShopPricing.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/shop/ShopService.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/BlockPosition.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/IslandTeleportHelper.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/ItemBuilder.java

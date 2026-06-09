@@ -6,6 +6,7 @@ import com.strawserver.strawskyblock.config.MessageManager;
 import com.strawserver.strawskyblock.database.DatabaseManager;
 import com.strawserver.strawskyblock.diagnostic.DiagnosticService;
 import com.strawserver.strawskyblock.economy.EconomyHook;
+import com.strawserver.strawskyblock.shop.ShopService;
 import com.strawserver.strawskyblock.economy.VaultEconomyHook;
 import com.strawserver.strawskyblock.generator.AnimalSpawnService;
 import com.strawserver.strawskyblock.generator.CobbleGeneratorService;
@@ -55,6 +56,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
     private AnimalSpawnService animalSpawnService;
     private RobotService robotService;
     private EconomyHook economyHook;
+    private ShopService shopService;
     private TeleportActivityTracker teleportActivityTracker;
 
     private final Set<UUID> bypassing = ConcurrentHashMap.newKeySet();
@@ -92,6 +94,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         this.robotService = new RobotService(this);
 
         setupEconomy();
+        this.shopService = new ShopService(this);
         setupPlaceholders();
         registerListeners();
         registerCommands();
@@ -242,6 +245,10 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     public EconomyHook getEconomyHook() {
         return economyHook;
+    }
+
+    public ShopService getShopService() {
+        return shopService;
     }
 
     public TeleportActivityTracker getTeleportActivityTracker() {

@@ -308,6 +308,28 @@ public class ConfigManager {
         return result;
     }
 
+    // ---- 官方商城 ----
+    public boolean isShopEnabled() {
+        return config.getBoolean("shop.enabled", true);
+    }
+
+    /**
+     * 取得官方商城收購單價表，key 為大寫材質名稱，value 為每 1 個的收購金額。
+     */
+    public Map<String, Double> getShopBuyPrices() {
+        Map<String, Double> result = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("shop.buy-prices");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                double price = section.getDouble(key);
+                if (price > 0) {
+                    result.put(key.toUpperCase(Locale.ROOT), price);
+                }
+            }
+        }
+        return result;
+    }
+
     // ---- animal spawn ----
     public boolean isAnimalSpawnEnabled() {
         return config.getBoolean("animal-spawn.enabled", true);

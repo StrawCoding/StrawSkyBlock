@@ -27,6 +27,12 @@ island:
   reset-confirm: "<red>確定要重置空島嗎？島上所有方塊將清除！再次輸入 <yellow>/is reset</yellow> 以確認（{seconds} 秒內）。"
   limit-reached: "<red>你已達到可擁有的空島數量上限。"
 
+shop:
+  sold: "<green>已賣出 <yellow>{amount}</yellow> 個礦物，獲得 <gold>{money}</gold>。"
+  nothing: "<yellow>你的背包裡沒有可收購的礦物。"
+  disabled: "<red>官方商城目前已停用。"
+  no-economy: "<red>官方商城暫時無法使用（未啟用經濟系統）。"
+
 members:
   invite-sent: "<green>已邀請 <yellow>{player}</yellow> 加入你的空島。"
   invite-received: "<yellow>{player}</yellow> 邀請你加入空島，請輸入 <green>/is accept</green> 接受或 <red>/is deny</red> 拒絕。"

@@ -211,6 +211,23 @@ economy:
   provider: Vault
   create-island-cost: 0
 
+# 官方商城：玩家可將刷石機產出的礦物賣給伺服器換取金錢。
+# buy-prices 為「每 1 個」的收購單價（需安裝 Vault 經濟系統才會生效）。
+shop:
+  enabled: true
+  buy-prices:
+    COAL: 2.0
+    RAW_COPPER: 3.0
+    RAW_IRON: 5.0
+    RAW_GOLD: 8.0
+    REDSTONE: 2.0
+    LAPIS_LAZULI: 3.0
+    QUARTZ: 3.0
+    AMETHYST_SHARD: 5.0
+    EMERALD: 12.0
+    DIAMOND: 20.0
+    ANCIENT_DEBRIS: 100.0
+
 void-protection:
   enabled: true
   # 虛空防護 Y 閾值（小於等於此值時觸發傳送）

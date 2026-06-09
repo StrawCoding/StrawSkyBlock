@@ -1,4 +1,5 @@
 com/strawserver/strawskyblock/listener/PlayerRespawnListenerTest.class
+com/strawserver/strawskyblock/shop/ShopPricingTest.class
 com/strawserver/strawskyblock/listener/VoidProtectionListenerTest.class
 com/strawserver/strawskyblock/config/ConfigManagerTest.class
 com/strawserver/strawskyblock/diagnostic/DiagnosticReportTest.class

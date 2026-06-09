@@ -18,6 +18,7 @@ public class IslandMainGui extends Gui {
     private static final int SLOT_CREATE = 12;
     private static final int SLOT_MEMBERS = 14;
     private static final int SLOT_SETTINGS = 16;
+    private static final int SLOT_SHOP = 22;
     private static final int SLOT_GENERATOR = 28;
     private static final int SLOT_ANIMALS = 30;
     private static final int SLOT_TOP = 32;
@@ -59,6 +60,11 @@ public class IslandMainGui extends Gui {
                 .name("<white>礦物機率").lore("<gray>查看刷石機掉落機率").build());
         set(SLOT_ANIMALS, new ItemBuilder(Material.WHEAT)
                 .name("<green>動物生成").lore("<gray>查看挖石生成動物機率").build());
+        if (plugin.getShopService().isShopEnabled()) {
+            set(SLOT_SHOP, new ItemBuilder(Material.EMERALD)
+                    .name("<gold>官方商城")
+                    .lore("<gray>將挖到的礦物賣給伺服器", "<yellow>點擊開啟收購介面").glow(true).build());
+        }
         set(SLOT_TOP, new ItemBuilder(Material.GOLD_INGOT)
                 .name("<gold>排行榜").lore("<gray>查看空島排行榜").build());
         set(SLOT_DELETE, new ItemBuilder(Material.TNT)
@@ -97,6 +103,15 @@ public class IslandMainGui extends Gui {
             }
             case SLOT_GENERATOR -> new IslandGeneratorGui(plugin).open(player);
             case SLOT_ANIMALS -> new IslandAnimalGui(plugin).open(player);
+            case SLOT_SHOP -> {
+                if (plugin.getShopService().isAvailable()) {
+                    new IslandShopGui(plugin).open(player);
+                } else {
+                    player.closeInventory();
+                    plugin.getMessageManager().send(player,
+                            plugin.getShopService().isShopEnabled() ? "shop.no-economy" : "shop.disabled");
+                }
+            }
             case SLOT_TOP -> player.closeInventory();
             case SLOT_DELETE -> {
                 if (island != null) {

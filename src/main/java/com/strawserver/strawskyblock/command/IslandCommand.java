@@ -8,6 +8,7 @@ import com.strawserver.strawskyblock.gui.IslandGeneratorGui;
 import com.strawserver.strawskyblock.gui.IslandMainGui;
 import com.strawserver.strawskyblock.gui.IslandMemberGui;
 import com.strawserver.strawskyblock.gui.IslandSettingsGui;
+import com.strawserver.strawskyblock.gui.IslandShopGui;
 import com.strawserver.strawskyblock.island.Island;
 import com.strawserver.strawskyblock.util.IslandTeleportHelper;
 import org.bukkit.Bukkit;
@@ -32,7 +33,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> USER_SUBS = Arrays.asList(
             "create", "home", "sethome", "invite", "accept", "deny", "kick", "leave",
-            "delete", "reset", "members", "settings", "generator", "animals", "robot", "top", "visit", "admin");
+            "delete", "reset", "members", "settings", "generator", "animals", "shop", "sell", "robot", "top", "visit", "admin");
 
     private static final List<String> ADMIN_SUBS = Arrays.asList(
             "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug", "diag");
@@ -88,6 +89,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
                     () -> new IslandGeneratorGui(plugin).open(player));
             case "animals" -> requirePerm(player, "strawskyblock.user.animals",
                     () -> new IslandAnimalGui(plugin).open(player));
+            case "shop", "sell" -> requirePerm(player, "strawskyblock.user.shop", () -> openShop(player));
             case "robot" -> requirePerm(player, "strawskyblock.user.robot", () -> handleRobot(player, args));
             case "top" -> requirePerm(player, "strawskyblock.user.top", () -> handleTop(player));
             case "visit" -> requirePerm(player, "strawskyblock.user.visit", () -> handleVisit(player, args));
@@ -171,6 +173,18 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             return;
         }
         new IslandSettingsGui(plugin, island).open(player);
+    }
+
+    private void openShop(Player player) {
+        if (!plugin.getShopService().isShopEnabled()) {
+            plugin.getMessageManager().send(player, "shop.disabled");
+            return;
+        }
+        if (!plugin.getShopService().isAvailable()) {
+            plugin.getMessageManager().send(player, "shop.no-economy");
+            return;
+        }
+        new IslandShopGui(plugin).open(player);
     }
 
     // =========================================================================

@@ -1,5 +1,5 @@
 name: StrawSkyBlock
-version: '1.0.14'
+version: '1.0.15'
 main: com.strawserver.strawskyblock.StrawSkyBlockPlugin
 api-version: '1.21'
 author: StrawServer
@@ -50,6 +50,8 @@ permissions:
   strawskyblock.user.generator:
     default: true
   strawskyblock.user.animals:
+    default: true
+  strawskyblock.user.shop:
     default: true
   strawskyblock.user.robot:
     default: true
