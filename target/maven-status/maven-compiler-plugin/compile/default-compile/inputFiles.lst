@@ -46,6 +46,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/protection/InteractionType.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/protection/ProtectionService.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/Robot.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotItem.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotLevels.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotPurchase.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotRepository.java

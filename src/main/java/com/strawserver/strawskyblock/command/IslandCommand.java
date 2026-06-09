@@ -253,24 +253,11 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
     }
 
     private void robotCreate(Player player, Island island) {
-        if (plugin.getRobotService().getByIsland(island.getIslandUuid()) != null) {
-            plugin.getMessageManager().send(player, "robot.already-exists");
-            return;
-        }
-        int max = plugin.getConfigManager().getRobotMaxPerIsland();
-        if (max > 0 && plugin.getRobotService().countByOwner(player.getUniqueId()) >= max) {
-            plugin.getMessageManager().send(player, "robot.limit-reached",
-                    MessageManager.placeholders("max", String.valueOf(max)));
-            return;
-        }
-        org.bukkit.block.Block block = player.getLocation().getBlock();
-        plugin.getRobotService().createRobot(island, player.getUniqueId(),
-                block.getX(), block.getY(), block.getZ());
-        plugin.getMessageManager().send(player, "robot.created",
-                MessageManager.placeholders(
-                        "x", String.valueOf(block.getX()),
-                        "y", String.valueOf(block.getY()),
-                        "z", String.valueOf(block.getZ())));
+        // 改為發放可放置的機器人物品；玩家右鍵地面即可部署。
+        plugin.getRobotService().giveRobotItem(player,
+                plugin.getConfigManager().getRobotDefaultSpeedLevel(),
+                plugin.getConfigManager().getRobotDefaultLengthLevel());
+        plugin.getMessageManager().send(player, "robot.item-received");
     }
 
     private void robotChest(Player player, Island island) {

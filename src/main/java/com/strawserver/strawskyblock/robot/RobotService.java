@@ -273,15 +273,67 @@ public class RobotService {
     // 建立 / 設定 / 移除（皆於主執行緒呼叫，資料庫寫入非同步）
     // =========================================================================
     public Robot createRobot(Island island, UUID ownerUuid, int originX, int originY, int originZ) {
+        return createRobot(island, ownerUuid, originX, originY, originZ,
+                plugin.getConfigManager().getRobotDefaultSpeedLevel(),
+                plugin.getConfigManager().getRobotDefaultLengthLevel());
+    }
+
+    public Robot createRobot(Island island, UUID ownerUuid, int originX, int originY, int originZ,
+                             int speedLevel, int lengthLevel) {
         Robot robot = new Robot(island.getIslandUuid(), ownerUuid, island.getWorldName(),
                 originX, originY, originZ, null, null, null,
-                levels.clampLevel(plugin.getConfigManager().getRobotDefaultSpeedLevel()),
-                levels.clampLevel(plugin.getConfigManager().getRobotDefaultLengthLevel()),
+                levels.clampLevel(speedLevel),
+                levels.clampLevel(lengthLevel),
                 false);
         robotsByIsland.put(island.getIslandUuid(), robot);
         saveAsync(robot);
         ensureArmorStand(robot);
         return robot;
+    }
+
+    /**
+     * 將一個機器人物品交給玩家（背包滿則掉落於腳下）。
+     */
+    public void giveRobotItem(Player player, int speedLevel, int lengthLevel) {
+        org.bukkit.inventory.ItemStack item = RobotItem.create(plugin,
+                levels.clampLevel(speedLevel), levels.clampLevel(lengthLevel));
+        Map<Integer, org.bukkit.inventory.ItemStack> leftover =
+                player.getInventory().addItem(item);
+        if (!leftover.isEmpty()) {
+            for (org.bukkit.inventory.ItemStack drop : leftover.values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), drop);
+            }
+        }
+    }
+
+    /**
+     * 拿起機器人盔甲架：移除機器人並把保留等級的物品交還玩家。
+     * 必須於主執行緒呼叫。
+     */
+    public void pickUp(Player player, Robot robot) {
+        int speed = robot.getSpeedLevel();
+        int length = robot.getLengthLevel();
+        removeRobot(robot);
+        giveRobotItem(player, speed, length);
+    }
+
+    public UUID getStandIslandPublic(Entity entity) {
+        return getStandIsland(entity);
+    }
+
+    // ---- 連結箱子模式（右鍵小人後點箱子）----
+    private final Map<UUID, UUID> pendingChestBind = new ConcurrentHashMap<>();
+
+    public void beginChestBind(UUID playerUuid, UUID islandUuid) {
+        pendingChestBind.put(playerUuid, islandUuid);
+    }
+
+    public UUID consumeChestBind(UUID playerUuid) {
+        return pendingChestBind.remove(playerUuid);
+    }
+
+    public boolean isAwaitingChestBind(UUID playerUuid) {
+        return pendingChestBind.containsKey(playerUuid);
     }
 
     public void removeRobot(Robot robot) {

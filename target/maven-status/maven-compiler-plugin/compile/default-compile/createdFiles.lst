@@ -13,7 +13,6 @@ com/strawserver/strawskyblock/listener/BlockFromToListener.class
 com/strawserver/strawskyblock/gui/IslandGeneratorGui.class
 com/strawserver/strawskyblock/island/IslandService.class
 com/strawserver/strawskyblock/robot/RobotService.class
-com/strawserver/strawskyblock/gui/RobotShopGui$1.class
 com/strawserver/strawskyblock/listener/RobotEntityListener.class
 com/strawserver/strawskyblock/util/WeightedRandom$Entry.class
 com/strawserver/strawskyblock/StrawSkyBlockPlugin.class
@@ -55,6 +54,7 @@ com/strawserver/strawskyblock/listener/VoidProtectionListener.class
 com/strawserver/strawskyblock/util/MiniMessageUtil.class
 com/strawserver/strawskyblock/listener/BlockPlaceListener.class
 com/strawserver/strawskyblock/listener/PlayerRespawnListener.class
+com/strawserver/strawskyblock/robot/RobotItem.class
 com/strawserver/strawskyblock/generator/OreDropTable.class
 com/strawserver/strawskyblock/robot/Robot.class
 com/strawserver/strawskyblock/util/IslandTeleportHelper.class
