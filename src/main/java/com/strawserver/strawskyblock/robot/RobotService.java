@@ -419,9 +419,9 @@ public class RobotService {
         }
         robot.setChestFullNotified(false);
 
-        // 成功存入後才破壞方塊。
+        // 成功存入後才破壞方塊。必須套用物理更新，否則鄰近水/岩漿不會流動，刷石機無法再生。
         Location targetLoc = target.getLocation();
-        target.setType(Material.AIR, false);
+        target.setType(Material.AIR, true);
         plugin.getCobbleGeneratorService().removeGeneratedCobblestone(targetLoc);
 
         boolean ore = drop.getType() != Material.COBBLESTONE;
