@@ -102,6 +102,21 @@ public class MessageManager {
         sender.sendMessage(getPrefixed(path, placeholders));
     }
 
+    /**
+     * 發送多行訊息（無前綴），適合說明 / 教學區塊。
+     * 若該路徑非清單，則退回以單行訊息發送。
+     */
+    public void sendList(CommandSender sender, String path) {
+        java.util.List<String> lines = messages.getStringList(path);
+        if (lines.isEmpty()) {
+            send(sender, path);
+            return;
+        }
+        for (String line : lines) {
+            sender.sendMessage(MiniMessageUtil.parse(line));
+        }
+    }
+
     public static Map<String, String> placeholders(String... pairs) {
         Map<String, String> map = new HashMap<>();
         for (int i = 0; i + 1 < pairs.length; i += 2) {

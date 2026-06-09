@@ -53,6 +53,13 @@ public class RobotService {
         return levels;
     }
 
+    /**
+     * 發送小機器人使用說明（/is robot help 與購買後皆會呼叫）。
+     */
+    public void sendHelp(org.bukkit.command.CommandSender sender) {
+        plugin.getMessageManager().sendList(sender, "robot.help");
+    }
+
     public Robot getByIsland(UUID islandUuid) {
         return robotsByIsland.get(islandUuid);
     }

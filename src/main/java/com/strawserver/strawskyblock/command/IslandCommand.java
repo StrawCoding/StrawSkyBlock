@@ -41,7 +41,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug", "diag");
 
     private static final List<String> ROBOT_SUBS = Arrays.asList(
-            "create", "chest", "speed", "length", "start", "stop", "info", "remove");
+            "create", "chest", "speed", "length", "start", "stop", "info", "remove", "help");
 
     private final StrawSkyBlockPlugin plugin;
 
@@ -209,6 +209,12 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length < 2) {
             plugin.getMessageManager().send(player, "robot.usage");
+            return;
+        }
+
+        // help 不需在島上即可查看。
+        if (args[1].equalsIgnoreCase("help")) {
+            plugin.getRobotService().sendHelp(player);
             return;
         }
 

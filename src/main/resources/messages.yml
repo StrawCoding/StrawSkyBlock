@@ -80,7 +80,18 @@ item-names:
 
 robot:
   disabled: "<red>小機器人功能目前未啟用。"
-  usage: "<gray>用法：/is robot <create|chest|speed|length|start|stop|info|remove>"
+  usage: "<gray>用法：/is robot <create|chest|speed|length|start|stop|info|remove|help>"
+  help:
+    - "<gold>═══════ <yellow>小機器人使用說明</yellow> ═══════"
+    - "<gray>機器人會自動挖掘範圍內的<white>鵝卵石</white>並放入綁定的箱子，挖到的還有機率變成礦物。"
+    - "<yellow>① <white>站在刷石機出石頭的位置旁</white><gray>（你站的這格＝掃描中心）"
+    - "<yellow>② <white>/is robotshop</white> <gray>購買，或 <white>/is robot create</white> <gray>建立機器人"
+    - "<yellow>③ <gray>看著島上的箱子執行 <white>/is robot chest</white> <gray>綁定存放箱"
+    - "<yellow>④ <white>/is robot start</white> <gray>開始自動挖礦（<white>/is robot stop</white> 暫停）"
+    - "<gray>升級：<white>/is robot speed <1-6></white> 加快速度、<white>/is robot length <1-6></white> 擴大範圍"
+    - "<gray>查詢：<white>/is robot info</white> 狀態　移除：<white>/is robot remove</white>"
+    - "<dark_gray>提示：箱子滿了會自動暫停（不會掉物），箱子被拆會自動停機。"
+    - "<gold>══════════════════════════"
   level-usage: "<gray>用法：/is robot <speed|length> <1-6>"
   not-on-island: "<red>你必須站在空島範圍內才能操作小機器人。"
   not-trusted: "<red>你不是這座空島的成員，無法操作小機器人。"

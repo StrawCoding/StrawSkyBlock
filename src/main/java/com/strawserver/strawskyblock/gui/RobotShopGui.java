@@ -134,6 +134,7 @@ public class RobotShopGui extends Gui {
                                 "x", String.valueOf(block.getX()),
                                 "y", String.valueOf(block.getY()),
                                 "z", String.valueOf(block.getZ())));
+                plugin.getRobotService().sendHelp(player);
             }
         }
     }
