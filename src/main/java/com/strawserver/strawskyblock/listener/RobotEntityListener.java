@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
@@ -27,10 +28,10 @@ import java.util.UUID;
  * 小機器人盔甲架小人的維護、保護與互動：
  * <ul>
  *   <li>區塊載入時補上盔甲架並清除孤兒。</li>
- *   <li>禁止玩家操作裝備或破壞機器人盔甲架。</li>
+ *   <li>禁止其他來源破壞機器人盔甲架，並禁止玩家操作裝備。</li>
  *   <li>右鍵地面：放置手中的機器人物品（部署）。</li>
- *   <li>右鍵小人：進入「連結箱子」模式，下一次點擊箱子即綁定。</li>
- *   <li>潛行＋右鍵小人：拿起機器人（變回可放置物品，保留等級）。</li>
+ *   <li>右鍵小人：進入「連結箱子」模式，下一次點擊箱子即綁定並自動開始挖礦。</li>
+ *   <li>左鍵小人：拿起機器人（變回可放置物品，保留等級）。</li>
  * </ul>
  */
 public class RobotEntityListener implements Listener {
@@ -53,15 +54,40 @@ public class RobotEntityListener implements Listener {
         }
     }
 
+    /**
+     * 機器人盔甲架不受一般傷害；若是玩家左鍵攻擊，則視為「拿起」收回背包。
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
-        if (plugin.getRobotService().isRobotStand(event.getEntity())) {
-            event.setCancelled(true);
+        Entity entity = event.getEntity();
+        if (!plugin.getRobotService().isRobotStand(entity)) {
+            return;
         }
+        event.setCancelled(true);
+        if (!(event instanceof EntityDamageByEntityEvent byEntity)
+                || !(byEntity.getDamager() instanceof Player player)) {
+            return;
+        }
+        UUID islandUuid = plugin.getRobotService().getStandIslandPublic(entity);
+        if (islandUuid == null) {
+            return;
+        }
+        Robot robot = plugin.getRobotService().getByIsland(islandUuid);
+        if (robot == null) {
+            entity.remove();
+            return;
+        }
+        Island island = plugin.getIslandService().getCache().getByUuid(islandUuid);
+        if (island == null || !island.getRole(player.getUniqueId()).isTrusted()) {
+            plugin.getMessageManager().send(player, "robot.not-trusted");
+            return;
+        }
+        plugin.getRobotService().pickUp(player, robot);
+        plugin.getMessageManager().send(player, "robot.picked-up");
     }
 
     /**
-     * 右鍵小人：潛行＝拿起、一般＝進入連結箱子模式。
+     * 右鍵小人：進入「連結箱子」模式。
      */
     @EventHandler(priority = EventPriority.HIGH)
     public void onInteractStand(PlayerInteractAtEntityEvent event) {
@@ -88,14 +114,8 @@ public class RobotEntityListener implements Listener {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
         }
-
-        if (player.isSneaking()) {
-            plugin.getRobotService().pickUp(player, robot);
-            plugin.getMessageManager().send(player, "robot.picked-up");
-        } else {
-            plugin.getRobotService().beginChestBind(player.getUniqueId(), islandUuid);
-            plugin.getMessageManager().send(player, "robot.bind-start");
-        }
+        plugin.getRobotService().beginChestBind(player.getUniqueId(), islandUuid);
+        plugin.getMessageManager().send(player, "robot.bind-start");
     }
 
     /**
@@ -147,12 +167,16 @@ public class RobotEntityListener implements Listener {
             return;
         }
         robot.setChest(clicked.getX(), clicked.getY(), clicked.getZ());
+        // 綁定箱子後自動開始挖礦。
+        robot.setActive(true);
+        robot.setChestFullNotified(false);
         plugin.getRobotService().saveAsync(robot);
         plugin.getMessageManager().send(player, "robot.chest-set",
                 MessageManager.placeholders(
                         "x", String.valueOf(clicked.getX()),
                         "y", String.valueOf(clicked.getY()),
                         "z", String.valueOf(clicked.getZ())));
+        plugin.getMessageManager().send(player, "robot.auto-started");
     }
 
     private void handlePlace(Player player, Block clicked, org.bukkit.block.BlockFace face, ItemStack inHand) {

@@ -41,7 +41,7 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             "reload", "tp", "delete", "reset", "info", "setowner", "bypass", "debug", "diag");
 
     private static final List<String> ROBOT_SUBS = Arrays.asList(
-            "create", "chest", "speed", "length", "start", "stop", "info", "remove", "help");
+            "speed", "length", "start", "stop", "info", "help");
 
     private final StrawSkyBlockPlugin plugin;
 
@@ -231,14 +231,11 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
 
         String sub = args[1].toLowerCase();
         switch (sub) {
-            case "create" -> robotCreate(player, island);
-            case "chest" -> robotChest(player, island);
             case "speed" -> robotUpgradeSpeed(player, island, args);
             case "length" -> robotUpgradeLength(player, island, args);
             case "start" -> robotStart(player, island);
             case "stop" -> robotStop(player, island);
             case "info" -> robotInfo(player, island);
-            case "remove" -> robotRemove(player, island);
             default -> plugin.getMessageManager().send(player, "robot.usage");
         }
     }
@@ -250,37 +247,6 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
             plugin.getMessageManager().send(player, "robot.none");
         }
         return robot;
-    }
-
-    private void robotCreate(Player player, Island island) {
-        // 改為發放可放置的機器人物品；玩家右鍵地面即可部署。
-        plugin.getRobotService().giveRobotItem(player,
-                plugin.getConfigManager().getRobotDefaultSpeedLevel(),
-                plugin.getConfigManager().getRobotDefaultLengthLevel());
-        plugin.getMessageManager().send(player, "robot.item-received");
-    }
-
-    private void robotChest(Player player, Island island) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        org.bukkit.block.Block target = player.getTargetBlockExact(6);
-        if (target == null || !(target.getState() instanceof org.bukkit.block.Container)) {
-            plugin.getMessageManager().send(player, "robot.chest-not-container");
-            return;
-        }
-        if (!island.contains(target.getLocation())) {
-            plugin.getMessageManager().send(player, "robot.chest-outside");
-            return;
-        }
-        robot.setChest(target.getX(), target.getY(), target.getZ());
-        plugin.getRobotService().saveAsync(robot);
-        plugin.getMessageManager().send(player, "robot.chest-set",
-                MessageManager.placeholders(
-                        "x", String.valueOf(target.getX()),
-                        "y", String.valueOf(target.getY()),
-                        "z", String.valueOf(target.getZ())));
     }
 
     private Integer parseLevelArg(Player player, String[] args) {
@@ -436,15 +402,6 @@ public class IslandCommand implements CommandExecutor, TabCompleter {
     private void robotInfoLine(Player player, String key, String value) {
         player.sendMessage(plugin.getMessageManager().get("admin.info-line",
                 MessageManager.placeholders("key", key, "value", value)));
-    }
-
-    private void robotRemove(Player player, Island island) {
-        com.strawserver.strawskyblock.robot.Robot robot = requireRobot(player, island);
-        if (robot == null) {
-            return;
-        }
-        plugin.getRobotService().removeRobot(robot);
-        plugin.getMessageManager().send(player, "robot.removed");
     }
 
     // =========================================================================
