@@ -20,6 +20,7 @@ import com.strawserver.strawskyblock.listener.InventoryClickListener;
 import com.strawserver.strawskyblock.listener.PlayerInteractListener;
 import com.strawserver.strawskyblock.listener.PlayerJoinListener;
 import com.strawserver.strawskyblock.listener.PlayerRespawnListener;
+import com.strawserver.strawskyblock.listener.RobotEntityListener;
 import com.strawserver.strawskyblock.listener.SpawnCommandListener;
 import com.strawserver.strawskyblock.listener.WorldProtectionListener;
 import com.strawserver.strawskyblock.listener.VoidProtectionListener;
@@ -154,6 +155,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         pm.registerEvents(new SpawnCommandListener(this), this);
         pm.registerEvents(new WorldProtectionListener(this), this);
         pm.registerEvents(new VoidProtectionListener(this), this);
+        pm.registerEvents(new RobotEntityListener(this), this);
         pm.registerEvents(teleportActivityTracker, this);
     }
 

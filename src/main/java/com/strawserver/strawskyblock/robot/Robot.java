@@ -5,8 +5,8 @@ import java.util.UUID;
 /**
  * 小機器人的記憶體模型，由 {@link RobotService} 持有，並對應資料庫 straw_skyblock_robots 一列。
  *
- * <p>每座島嶼以 {@code islandUuid} 作為鍵；機器人是虛擬的（不放置實體方塊 / 實體），
- * 以 {@code origin} 座標作為掃描中心，將挖到的掉落物存入 {@code chest} 連結的箱子。</p>
+ * <p>每座島嶼以 {@code islandUuid} 作為鍵；以 {@code origin} 座標作為掃描中心並於該處生成
+ * 盔甲架小人作為外觀，將挖到的掉落物存入 {@code chest} 連結的箱子。</p>
  */
 public class Robot {
 

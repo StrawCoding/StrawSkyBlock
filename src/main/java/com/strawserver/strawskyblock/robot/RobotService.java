@@ -3,16 +3,23 @@ package com.strawserver.strawskyblock.robot;
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
 import com.strawserver.strawskyblock.config.MessageManager;
 import com.strawserver.strawskyblock.island.Island;
+import com.strawserver.strawskyblock.util.MiniMessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.sql.SQLException;
@@ -27,7 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>設計重點：</p>
  * <ul>
  *   <li>每座島嶼最多 {@code robot.max-per-island} 台機器人（預設 1，以島嶼 UUID 為鍵）。</li>
- *   <li>機器人為「虛擬」：以一個原點座標作為掃描中心，不放置實體方塊或實體。</li>
+ *   <li>機器人以一個原點座標作為掃描中心，並於原點生成一個「盔甲架小人」作為外觀，
+ *       透過 PersistentDataContainer 標記其所屬島嶼以便重啟後辨識與清理。</li>
  *   <li>挖掘由單一 {@code runTaskTimer}（主執行緒）驅動，每台機器人依速度等級的間隔挖掘一格，
  *       掃描範圍受長度等級與島嶼邊界雙重限制，確保效能與安全。</li>
  *   <li>先確認可放入箱子才破壞方塊，避免任何掉落物遺失。</li>
@@ -39,13 +47,18 @@ public class RobotService {
     private final StrawSkyBlockPlugin plugin;
     private final RobotRepository repository;
     private final Map<UUID, Robot> robotsByIsland = new ConcurrentHashMap<>();
+    /** 盔甲架小人的 PDC 標記鍵，值為其所屬島嶼 UUID 字串。 */
+    private final NamespacedKey robotKey;
 
     private RobotLevels levels;
     private BukkitTask task;
+    /** 機器人資料是否已從資料庫載入完成；未載入前不對盔甲架做孤兒清理，避免誤刪。 */
+    private volatile boolean robotsLoaded;
 
     public RobotService(StrawSkyBlockPlugin plugin) {
         this.plugin = plugin;
         this.repository = new RobotRepository(plugin);
+        this.robotKey = new NamespacedKey(plugin, "robot_island");
         reload();
     }
 
@@ -58,6 +71,140 @@ public class RobotService {
      */
     public void sendHelp(org.bukkit.command.CommandSender sender) {
         plugin.getMessageManager().sendList(sender, "robot.help");
+    }
+
+    // =========================================================================
+    // 盔甲架小人（實體外觀）
+    // =========================================================================
+    /**
+     * 判斷實體是否為小機器人盔甲架。
+     */
+    public boolean isRobotStand(Entity entity) {
+        return entity instanceof ArmorStand
+                && entity.getPersistentDataContainer().has(robotKey, PersistentDataType.STRING);
+    }
+
+    private UUID getStandIsland(Entity entity) {
+        String value = entity.getPersistentDataContainer().get(robotKey, PersistentDataType.STRING);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 確保機器人在其原點有一個盔甲架小人；若原點區塊已載入且尚無對應盔甲架則生成。
+     * 必須於主執行緒呼叫。
+     */
+    public void ensureArmorStand(Robot robot) {
+        World world = Bukkit.getWorld(robot.getWorldName());
+        if (world == null) {
+            return;
+        }
+        if (!world.isChunkLoaded(robot.getOriginX() >> 4, robot.getOriginZ() >> 4)) {
+            return;
+        }
+        if (findStand(world, robot) != null) {
+            return;
+        }
+        spawnStand(world, robot);
+    }
+
+    private ArmorStand findStand(World world, Robot robot) {
+        Chunk chunk = world.getChunkAt(robot.getOriginX() >> 4, robot.getOriginZ() >> 4);
+        String islandStr = robot.getIslandUuid().toString();
+        for (Entity entity : chunk.getEntities()) {
+            if (entity instanceof ArmorStand
+                    && islandStr.equals(entity.getPersistentDataContainer()
+                    .get(robotKey, PersistentDataType.STRING))) {
+                return (ArmorStand) entity;
+            }
+        }
+        return null;
+    }
+
+    private void spawnStand(World world, Robot robot) {
+        Location loc = new Location(world,
+                robot.getOriginX() + 0.5, robot.getOriginY(), robot.getOriginZ() + 0.5);
+        world.spawn(loc, ArmorStand.class, stand -> {
+            stand.setSmall(true);
+            stand.setArms(true);
+            stand.setBasePlate(false);
+            stand.setGravity(false);
+            stand.setInvulnerable(true);
+            stand.setPersistent(true);
+            stand.setCanPickupItems(false);
+            stand.setCustomNameVisible(true);
+            stand.customName(MiniMessageUtil.parse("<aqua>⚙ 小機器人"));
+            stand.getPersistentDataContainer().set(robotKey, PersistentDataType.STRING,
+                    robot.getIslandUuid().toString());
+            EntityEquipment equipment = stand.getEquipment();
+            if (equipment != null) {
+                equipment.setHelmet(new ItemStack(Material.PLAYER_HEAD));
+                equipment.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
+                equipment.setItemInMainHand(new ItemStack(Material.NETHERITE_PICKAXE));
+            }
+            stand.setRotation(0f, 0f);
+        });
+    }
+
+    /**
+     * 移除機器人的盔甲架小人（若所在區塊已載入）。必須於主執行緒呼叫。
+     */
+    public void removeArmorStand(Robot robot) {
+        World world = Bukkit.getWorld(robot.getWorldName());
+        if (world == null) {
+            return;
+        }
+        if (!world.isChunkLoaded(robot.getOriginX() >> 4, robot.getOriginZ() >> 4)) {
+            return;
+        }
+        ArmorStand stand = findStand(world, robot);
+        if (stand != null) {
+            stand.remove();
+        }
+    }
+
+    /**
+     * 區塊載入時：為位於此區塊的機器人補上盔甲架，並清除無對應機器人的孤兒盔甲架。
+     * 僅處理空島世界。必須於主執行緒呼叫。
+     */
+    public void handleChunkLoad(Chunk chunk) {
+        if (!robotsLoaded) {
+            return;
+        }
+        if (!chunk.getWorld().getName().equals(plugin.getConfigManager().getIslandWorld())) {
+            return;
+        }
+        for (Robot robot : robotsByIsland.values()) {
+            if (robot.getWorldName().equals(chunk.getWorld().getName())
+                    && (robot.getOriginX() >> 4) == chunk.getX()
+                    && (robot.getOriginZ() >> 4) == chunk.getZ()) {
+                ensureArmorStand(robot);
+            }
+        }
+        for (Entity entity : chunk.getEntities()) {
+            if (!isRobotStand(entity)) {
+                continue;
+            }
+            UUID island = getStandIsland(entity);
+            if (island == null || !robotsByIsland.containsKey(island)) {
+                entity.remove();
+            }
+        }
+    }
+
+    /**
+     * 為所有原點區塊已載入的機器人補上盔甲架（伺服器載入後呼叫）。
+     */
+    public void ensureAllArmorStands() {
+        for (Robot robot : robotsByIsland.values()) {
+            ensureArmorStand(robot);
+        }
     }
 
     public Robot getByIsland(UUID islandUuid) {
@@ -99,6 +246,8 @@ public class RobotService {
                     for (Robot robot : robots) {
                         robotsByIsland.put(robot.getIslandUuid(), robot);
                     }
+                    robotsLoaded = true;
+                    ensureAllArmorStands();
                     plugin.getLogger().info("已載入 " + robots.size() + " 台小機器人。");
                 });
             } catch (SQLException e) {
@@ -131,10 +280,12 @@ public class RobotService {
                 false);
         robotsByIsland.put(island.getIslandUuid(), robot);
         saveAsync(robot);
+        ensureArmorStand(robot);
         return robot;
     }
 
     public void removeRobot(Robot robot) {
+        removeArmorStand(robot);
         robotsByIsland.remove(robot.getIslandUuid());
         UUID islandUuid = robot.getIslandUuid();
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -154,6 +305,7 @@ public class RobotService {
         if (robot == null) {
             return;
         }
+        removeArmorStand(robot);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 repository.delete(islandUuid);

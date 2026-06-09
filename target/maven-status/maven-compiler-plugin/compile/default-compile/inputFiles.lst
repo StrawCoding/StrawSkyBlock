@@ -38,6 +38,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/PlayerInteractListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/PlayerJoinListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/PlayerRespawnListener.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/RobotEntityListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/SpawnCommandListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/VoidProtectionListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/WorldProtectionListener.java
