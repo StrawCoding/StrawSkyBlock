@@ -41,14 +41,22 @@ public class BlockBreakListener implements Listener {
         if (!loc.getWorld().getName().equals(plugin.getConfigManager().getIslandWorld())) {
             return;
         }
-        if (block.getType() != Material.COBBLESTONE) {
-            return;
-        }
         if (!plugin.getConfigManager().isGeneratorEnabled()) {
             return;
         }
 
-        // 3. 僅處理刷石機生成的鵝卵石
+        boolean oreMode = plugin.getConfigManager().isGeneratorOreBlockMode();
+        Material type = block.getType();
+
+        // 判定是否為刷石機方塊：礦石模式接受任一礦石方塊（含鵝卵石），舊模式僅鵝卵石。
+        boolean generatorBlock = oreMode
+                ? plugin.getCobbleGeneratorService().isGeneratorBlock(type)
+                : type == Material.COBBLESTONE;
+        if (!generatorBlock) {
+            return;
+        }
+
+        // 3. 僅處理刷石機生成的方塊
         if (plugin.getConfigManager().isOnlyGeneratedCobblestone()
                 && !plugin.getCobbleGeneratorService().isGeneratedCobblestone(loc)) {
             return;
@@ -59,21 +67,26 @@ public class BlockBreakListener implements Listener {
             return;
         }
 
-        // 4. 取消原始掉落，依機率抽取
-        event.setDropItems(false);
-        ItemStack drop = plugin.getCobbleGeneratorService().rollDrop();
-        if (drop != null && drop.getType() != Material.AIR) {
-            loc.getWorld().dropItemNaturally(loc.toCenterLocation(), drop);
-            if (drop.getType() != Material.COBBLESTONE
-                    && plugin.getConfigManager().isNotifyOreDrop()) {
-                plugin.getMessageManager().send(player, "generator.ore-drop",
-                        MessageManager.placeholders("item",
-                                plugin.getMessageManager().getItemName(drop.getType())));
+        boolean ore;
+        if (oreMode) {
+            // 4a. 生成方塊模式：方塊本身即為礦石，交由原版掉落（時運／精準採集生效），不覆寫。
+            ore = type != Material.COBBLESTONE;
+        } else {
+            // 4b. 舊模式：取消原始掉落，依機率抽取掉落物。
+            event.setDropItems(false);
+            ItemStack drop = plugin.getCobbleGeneratorService().rollDrop();
+            if (drop != null && drop.getType() != Material.AIR) {
+                loc.getWorld().dropItemNaturally(loc.toCenterLocation(), drop);
+                if (drop.getType() != Material.COBBLESTONE
+                        && plugin.getConfigManager().isNotifyOreDrop()) {
+                    plugin.getMessageManager().send(player, "generator.ore-drop",
+                            MessageManager.placeholders("item",
+                                    plugin.getMessageManager().getItemName(drop.getType())));
+                }
             }
+            ore = drop != null && drop.getType() != Material.COBBLESTONE;
         }
         plugin.getCobbleGeneratorService().removeGeneratedCobblestone(loc);
-
-        boolean ore = drop != null && drop.getType() != Material.COBBLESTONE;
 
         // 5. 嘗試生成動物（主執行緒）
         boolean spawned = plugin.getAnimalSpawnService().trySpawnAnimal(player, island, loc);

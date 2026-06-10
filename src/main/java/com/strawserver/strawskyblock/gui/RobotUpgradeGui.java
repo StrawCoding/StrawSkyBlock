@@ -60,7 +60,7 @@ public class RobotUpgradeGui extends Gui {
                         "<gray>位置：<white>" + robot.getOriginX() + ", "
                                 + robot.getOriginY() + ", " + robot.getOriginZ(),
                         "<gray>挖掘間隔：<white>" + levels.intervalTicks(level) + " tick",
-                        "<gray>掃描半徑：<white>" + levels.range(level) + " 格",
+                        "<gray>前方整列：<white>" + levels.range(level) + " 格",
                         "<gray>狀態：" + status)
                 .hideAttributes()
                 .build());
@@ -81,7 +81,7 @@ public class RobotUpgradeGui extends Gui {
                     .lore(
                             "<gray>挖掘間隔：<white>" + levels.intervalTicks(level)
                                     + " <gray>→ <green>" + levels.intervalTicks(next) + " tick",
-                            "<gray>掃描半徑：<white>" + levels.range(level)
+                            "<gray>前方整列：<white>" + levels.range(level)
                                     + " <gray>→ <green>" + levels.range(next) + " 格",
                             "",
                             "<gray>花費：<gold>" + costText,
@@ -153,7 +153,9 @@ public class RobotUpgradeGui extends Gui {
 
         double cost = levels.upgradeCost(target);
         EconomyHook economy = plugin.getEconomyHook();
-        boolean chargeRequired = cost > 0 && economy != null && economy.isEnabled();
+        // 管理員繞過：無視升級費用（免費升級）。
+        boolean bypass = com.strawserver.strawskyblock.util.AdminBypass.hasBypass(player);
+        boolean chargeRequired = !bypass && cost > 0 && economy != null && economy.isEnabled();
         if (chargeRequired && !economy.has(player, cost)) {
             plugin.getMessageManager().send(player, "robot.not-enough-money",
                     MessageManager.placeholders("cost", economy.format(cost)));

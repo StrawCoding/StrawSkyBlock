@@ -1,5 +1,5 @@
 name: StrawSkyBlock
-version: '1.0.30'
+version: '1.0.39'
 main: com.strawserver.strawskyblock.StrawSkyBlockPlugin
 api-version: '1.21'
 # v1.0.29：早於預設世界載入啟用，使虛空生成器能套用到原版世界（world/world_nether/world_the_end）。
@@ -80,6 +80,7 @@ permissions:
   strawskyblock.admin.setowner:
     default: op
   strawskyblock.admin.bypass:
+    description: 全域管理員繞過：無視 StrawSkyBlock 所有限制／上限／費用與世界保護（破壞／放置／互動／傷害）。
     default: op
   strawskyblock.admin.debug:
     default: op

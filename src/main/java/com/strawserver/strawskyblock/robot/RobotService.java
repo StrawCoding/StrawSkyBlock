@@ -35,10 +35,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <ul>
  *   <li>每位玩家可部署多台機器人，上限由 LuckPerms 權限決定（預設 {@code robot.default-limit}）；
  *       每台機器人以放置座標（世界 + x/y/z）作為唯一鍵。</li>
- *   <li>機器人以一個原點座標作為掃描中心，並於原點生成一個「盔甲架小人」作為外觀，
+ *   <li>機器人以一個原點座標作為基準，並於原點生成一個「盔甲架小人」作為外觀，
  *       透過 PersistentDataContainer 標記其座標鍵以便重啟後辨識與清理。</li>
- *   <li>挖掘由單一 {@code runTaskTimer}（主執行緒）驅動，每台機器人依速度等級的間隔挖掘一格，
- *       掃描範圍受長度等級與島嶼邊界雙重限制，確保效能與安全。</li>
+ *   <li>挖掘由單一 {@code runTaskTimer}（主執行緒）驅動，每台機器人依速度等級的間隔，
+ *       一次挖取「面向前方整列」的刷石機方塊（列長 = 等級 range，受島嶼邊界裁切）。</li>
  *   <li>先確認可放入箱子才破壞方塊，避免任何掉落物遺失。</li>
  *   <li>所有資料庫操作於非同步執行緒；所有 Bukkit 操作於主執行緒。</li>
  * </ul>
@@ -437,6 +437,10 @@ public class RobotService {
             if (!robot.isActive()) {
                 continue;
             }
+            // v1.0.39：若該島已暫停（無人在場），跳過本次 tick（不計數、不挖掘、不存箱）。
+            if (!plugin.getIslandOccupancyService().shouldRunUnattended(robot.getIslandUuid())) {
+                continue;
+            }
             robot.addTicks(period);
             long interval = levels.intervalTicks(robot.getLevel());
             if (robot.getTickCounter() < interval) {
@@ -480,13 +484,7 @@ public class RobotService {
             return;
         }
 
-        // 尋找掃描範圍內第一個（位於島嶼邊界內的）鵝卵石。
-        Block target = findCobblestone(world, robot, island);
-        if (target == null) {
-            return; // 沒有可挖掘的鵝卵石。
-        }
-
-        // 檢查箱子。
+        // 檢查箱子（先於挖掘，避免無處存放）。
         int cx = robot.getChestX();
         int cy = robot.getChestY();
         int cz = robot.getChestZ();
@@ -500,60 +498,134 @@ public class RobotService {
             disableWithNotice(robot, "robot.error-chest-missing");
             return;
         }
+        Inventory inventory = container.getInventory();
 
-        ItemStack drop = computeDrop();
-        if (drop == null || drop.getType() == Material.AIR) {
+        // v1.0.33：以「面向前方整列」為一次挖取範圍，列長 = 等級對應的 range。
+        boolean oreMode = plugin.getConfigManager().isGeneratorOreBlockMode();
+        List<RobotForwardRow.Cell> cells = RobotForwardRow.cells(
+                robot.getOriginX(), robot.getOriginY(), robot.getOriginZ(), robot.getYaw(),
+                levels.range(robot.getLevel()),
+                plugin.getConfigManager().getRobotVerticalRange(),
+                island.getCenterX(), island.getCenterZ(), island.getSize() / 2);
+        if (cells.isEmpty()) {
             return;
         }
 
-        Inventory inventory = container.getInventory();
-        // 先模擬放入；amount 為 1，addItem 會全進或全不進。
-        Map<Integer, ItemStack> leftover = inventory.addItem(drop.clone());
-        if (!leftover.isEmpty()) {
-            // 箱子已滿：不破壞方塊（不遺失任何物品），僅通知一次。
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        int mined = 0;
+        int ore = 0;
+        boolean chestFull = false;
+
+        // 一次挖取整列：逐格挖掉刷石機方塊；箱子放得下才破壞（避免複製／遺失），放不下即停並通知一次。
+        for (RobotForwardRow.Cell cell : cells) {
+            if (cell.y() < minY || cell.y() > maxY) {
+                continue;
+            }
+            if (!island.contains(cell.x(), cell.z())) {
+                continue;
+            }
+            Block target = world.getBlockAt(cell.x(), cell.y(), cell.z());
+            Material targetType = target.getType();
+            boolean match = oreMode
+                    ? plugin.getCobbleGeneratorService().isGeneratorBlock(targetType)
+                    : targetType == Material.COBBLESTONE;
+            if (!match) {
+                continue;
+            }
+            List<ItemStack> drops = computeDrops(target, oreMode);
+            if (drops.isEmpty()) {
+                continue;
+            }
+            if (!canFitAll(inventory, drops)) {
+                chestFull = true;
+                break; // 箱子已滿，停止本列後續挖取。
+            }
+            for (ItemStack d : drops) {
+                inventory.addItem(d.clone());
+            }
+            // 成功存入後才破壞方塊。必須套用物理更新，否則鄰近水/岩漿不會流動，刷石機無法再生。
+            target.setType(Material.AIR, true);
+            plugin.getCobbleGeneratorService().removeGeneratedCobblestone(target.getLocation());
+            mined++;
+            boolean isOre = oreMode
+                    ? targetType != Material.COBBLESTONE
+                    : drops.stream().anyMatch(d -> d.getType() != Material.COBBLESTONE);
+            if (isOre) {
+                ore++;
+            }
+        }
+
+        if (chestFull) {
             if (!robot.isChestFullNotified()) {
                 notifyOwner(robot, "robot.chest-full");
                 robot.setChestFullNotified(true);
             }
-            return;
+        } else {
+            robot.setChestFullNotified(false);
         }
-        robot.setChestFullNotified(false);
 
-        // 成功存入後才破壞方塊。必須套用物理更新，否則鄰近水/岩漿不會流動，刷石機無法再生。
-        Location targetLoc = target.getLocation();
-        target.setType(Material.AIR, true);
-        plugin.getCobbleGeneratorService().removeGeneratedCobblestone(targetLoc);
-
-        boolean ore = drop.getType() != Material.COBBLESTONE;
-        plugin.getIslandService().addStats(island, 1, 1, ore ? 1 : 0, 0);
+        if (mined > 0) {
+            plugin.getIslandService().addStats(island, mined, mined, ore, 0);
+        }
     }
 
-    private Block findCobblestone(World world, Robot robot, Island island) {
-        int half = island.getSize() / 2;
-        RobotScanArea area = RobotScanArea.around(
-                robot.getOriginX(), robot.getOriginY(), robot.getOriginZ(),
-                levels.range(robot.getLevel()),
-                plugin.getConfigManager().getRobotVerticalRange(),
-                island.getCenterX(), island.getCenterZ(), half);
-        if (area.isEmpty()) {
-            return null;
+    /** 機器人計算礦石方塊原版掉落時使用的工具（不消耗、不附魔），確保礦石回傳正確掉落物。 */
+    private static final ItemStack GENERATOR_PICKAXE = new ItemStack(Material.NETHERITE_PICKAXE);
+
+    /**
+     * 計算機器人挖掉目標方塊應取得的掉落物清單。
+     *
+     * @param oreMode 是否為生成方塊模式（方塊本身即礦石，採原版掉落）
+     */
+    private List<ItemStack> computeDrops(Block target, boolean oreMode) {
+        if (oreMode) {
+            java.util.Collection<ItemStack> natural = target.getDrops(GENERATOR_PICKAXE);
+            if (natural.isEmpty()) {
+                return List.of(new ItemStack(target.getType(), 1));
+            }
+            return new java.util.ArrayList<>(natural);
         }
-        int minY = Math.max(area.minY(), world.getMinHeight());
-        int maxY = Math.min(area.maxY(), world.getMaxHeight() - 1);
-        for (int x = area.minX(); x <= area.maxX(); x++) {
-            for (int z = area.minZ(); z <= area.maxZ(); z++) {
-                if (!island.contains(x, z)) {
-                    continue;
+        ItemStack rolled = computeDrop();
+        if (rolled == null || rolled.getType() == Material.AIR) {
+            return List.of();
+        }
+        return List.of(rolled);
+    }
+
+    /**
+     * 容量檢查：在不變更箱子內容的前提下，判斷是否能完整容納所有掉落物（全進或全不進）。
+     *
+     * <p>刷石機方塊每次挖掘僅產出單一材質的掉落，因此逐材質統計可用空間即可正確判定。</p>
+     */
+    private boolean canFitAll(Inventory inventory, List<ItemStack> items) {
+        java.util.Map<Material, Integer> need = new java.util.EnumMap<>(Material.class);
+        for (ItemStack it : items) {
+            if (it == null || it.getType() == Material.AIR) {
+                continue;
+            }
+            need.merge(it.getType(), it.getAmount(), Integer::sum);
+        }
+        ItemStack[] contents = inventory.getStorageContents();
+        for (java.util.Map.Entry<Material, Integer> entry : need.entrySet()) {
+            Material mat = entry.getKey();
+            int required = entry.getValue();
+            int capacity = 0;
+            for (ItemStack slot : contents) {
+                if (slot == null || slot.getType() == Material.AIR) {
+                    capacity += mat.getMaxStackSize();
+                } else if (slot.getType() == mat) {
+                    capacity += Math.max(0, slot.getMaxStackSize() - slot.getAmount());
                 }
-                for (int y = minY; y <= maxY; y++) {
-                    Block block = world.getBlockAt(x, y, z);
-                    if (block.getType() == Material.COBBLESTONE) {
-                        return block;
-                    }
+                if (capacity >= required) {
+                    break;
                 }
             }
+            if (capacity < required) {
+                return false;
+            }
         }
-        return null;
+        return true;
     }
 
     private ItemStack computeDrop() {

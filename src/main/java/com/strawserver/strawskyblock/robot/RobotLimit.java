@@ -48,4 +48,25 @@ public final class RobotLimit {
         }
         return max < 0 ? fallback : max;
     }
+
+    /**
+     * 純邏輯：判斷玩家是否還能再放置一台機器人。
+     *
+     * <p>當 {@code bypass} 為 {@code true}（持有 {@code strawskyblock.admin.bypass}）時，
+     * 無視數量上限一律放行。</p>
+     *
+     * @param ownedCount 玩家目前已部署的機器人數量。
+     * @param limit      可部署上限（&le;0 表示不限）。
+     * @param bypass     是否擁有管理員繞過權限。
+     * @return 是否允許再放置一台。
+     */
+    public static boolean allowsPlacement(int ownedCount, int limit, boolean bypass) {
+        if (bypass) {
+            return true;
+        }
+        if (limit <= 0) {
+            return true;
+        }
+        return ownedCount < limit;
+    }
 }

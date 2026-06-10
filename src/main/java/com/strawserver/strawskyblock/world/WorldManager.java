@@ -14,6 +14,9 @@ import org.bukkit.generator.ChunkGenerator;
  */
 public class WorldManager {
 
+    /** 大廳石磚地板由中心區塊 (0,0) 往外延伸的區塊數，1 代表 3x3 = 9 個區塊。v1.0.36 */
+    private static final int LOBBY_FLOOR_CHUNK_RADIUS = 1;
+
     private final StrawSkyBlockPlugin plugin;
     private final VoidChunkGenerator generator;
 
@@ -90,9 +93,9 @@ public class WorldManager {
     /**
      * 將伺服器原版世界（主世界/地獄/終界）設定為純虛空（v1.0.29），必須在主執行緒呼叫。
      *
-     * <p>主世界（大廳）僅於出生點放置一個草方塊供站立，不帶任何 SkyBlock 功能；
-     * 地獄／終界則為完全空的虛空。世界本身的虛空生成由 {@code getDefaultWorldGenerator}
-     * 搭配 bukkit.yml 指定，本方法負責出生點與大廳草方塊。</p>
+     * <p>主世界（大廳）於出生點周圍鋪設 3x3 區塊（9 個區塊）的石磚地板供站立，不帶任何
+     * SkyBlock 功能；地獄／終界則為完全空的虛空。世界本身的虛空生成由
+     * {@code getDefaultWorldGenerator} 搭配 bukkit.yml 指定，本方法負責出生點與大廳地板。</p>
      */
     public void setupVanillaVoidWorlds() {
         if (!plugin.getConfigManager().isVanillaVoidEnabled()) {
@@ -112,12 +115,19 @@ public class WorldManager {
     }
 
     /**
-     * 主世界（大廳）：放置單一草方塊、設定出生點於其上、保持出生區塊載入，並關閉生物生成等。
+     * 主世界（大廳）：以出生點區塊 (0,0) 為中心鋪設 3x3 區塊（9 個區塊）的石磚地板、
+     * 設定出生點於地板之上、保持出生區塊載入，並關閉生物生成等。
      */
     private void setupLobbyWorld(World world) {
         int y = plugin.getConfigManager().getIslandY();
-        if (plugin.getConfigManager().isVanillaOverworldGrass()) {
-            world.getBlockAt(0, y, 0).setType(Material.GRASS_BLOCK, false);
+        if (plugin.getConfigManager().isVanillaOverworldFloor()) {
+            int placed = 0;
+            for (LobbyFloorArea.Cell cell : LobbyFloorArea.cells(LOBBY_FLOOR_CHUNK_RADIUS)) {
+                world.getBlockAt(cell.x(), y, cell.z()).setType(Material.STONE_BRICKS, false);
+                placed++;
+            }
+            plugin.getLogger().info("主世界大廳已鋪設 " + LobbyFloorArea.chunkCount(LOBBY_FLOOR_CHUNK_RADIUS)
+                    + " 個區塊石磚地板（共 " + placed + " 格）：" + world.getName());
         }
         world.setSpawnLocation(new Location(world, 0.5, y + 1, 0.5));
         applyVoidWorldSettings(world);

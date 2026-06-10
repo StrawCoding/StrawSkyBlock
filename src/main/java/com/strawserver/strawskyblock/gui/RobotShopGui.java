@@ -53,7 +53,7 @@ public class RobotShopGui extends Gui {
         set(BUY_SLOT, new ItemBuilder(Material.PLAYER_HEAD)
                 .name("<gold><bold>購買小機器人")
                 .lore(
-                        "<gray>自動挖掘範圍內的鵝卵石並存入箱子，",
+                        "<gray>自動挖掘面向前方整列的刷石機方塊並存入箱子，",
                         "<gray>挖到的方塊可能掉落礦物。",
                         "",
                         "<gray>價格：<gold>" + costText,
@@ -81,7 +81,7 @@ public class RobotShopGui extends Gui {
                             "<gray>位置：<white>" + robot.getOriginX() + ", "
                                     + robot.getOriginY() + ", " + robot.getOriginZ(),
                             "<gray>挖掘間隔：<white>" + levels.intervalTicks(robot.getLevel()) + " tick",
-                            "<gray>掃描半徑：<white>" + levels.range(robot.getLevel()) + " 格",
+                            "<gray>前方整列：<white>" + levels.range(robot.getLevel()) + " 格",
                             "<gray>狀態：" + status,
                             "",
                             "<yellow>點擊查看 / 升級這台機器人")
@@ -128,7 +128,9 @@ public class RobotShopGui extends Gui {
 
         double cost = plugin.getConfigManager().getRobotPurchaseCost();
         EconomyHook economy = plugin.getEconomyHook();
-        boolean chargeRequired = cost > 0 && economy != null && economy.isEnabled();
+        // 管理員繞過：無視購買費用（免費取得機器人）。
+        boolean bypass = com.strawserver.strawskyblock.util.AdminBypass.hasBypass(player);
+        boolean chargeRequired = !bypass && cost > 0 && economy != null && economy.isEnabled();
         if (chargeRequired && !economy.has(player, cost)) {
             player.closeInventory();
             plugin.getMessageManager().send(player, "robot.purchase-not-enough",

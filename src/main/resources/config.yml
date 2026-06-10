@@ -96,19 +96,26 @@ world:
   #   避免「地形尚未生成」時一過傳送門就掉入虛空。關閉則為純虛空（玩家自理）。
   nether-safe-platform: true
   # v1.0.29 將伺服器原版世界（主世界/地獄/終界）改為純虛空。
-  #   主世界（level-name，預設 world）作為大廳：純虛空，僅於出生點放置一個草方塊供站立，
+  #   主世界（level-name，預設 world）作為大廳：純虛空，於出生點周圍鋪設 3x3 區塊石磚地板供站立，
   #   不帶任何 SkyBlock 功能（保護／刷石機／機器人等只作用於 SkyBlock 世界）。
   #   原版地獄/終界一併淨空為虛空。注意：保留 portal 事件機制（不使用 allow-nether=false），
   #   以免影響 SkyBlock 下界傳送門。
   vanilla-void-enabled: true
   # 主世界（大廳）名稱，通常等於 server.properties 的 level-name。
   vanilla-overworld: world
-  # 是否於主世界出生點放置一個草方塊（玩家站在其上）。
-  vanilla-overworld-grass: true
+  # v1.0.36 是否於主世界出生點周圍鋪設 3x3 區塊（共 9 個區塊、48x48 格）的石磚地板。
+  #   （舊鍵 vanilla-overworld-grass 仍向下相容：未設定本鍵時沿用其值作為開關。）
+  vanilla-overworld-floor: true
   # 一併納入虛空淨空的原版世界（地獄／終界），這些世界不放任何方塊。
   vanilla-void-worlds:
     - world_nether
     - world_the_end
+
+# v1.0.39 空島暫停：當島上最後一位玩家離開（傳送、換世界、跨越邊界、離線）時，
+# 立即暫停該島的無人值守活動（如小機器人挖掘）。任一玩家進入即恢復。
+# 主世界／大廳不視為空島，不受此機制影響。
+island-pause:
+  enabled: true
 
 island:
   max-islands-per-player: 1
@@ -131,6 +138,28 @@ generator:
   fortune-support: false
   # 挖到礦物時是否於聊天列顯示「挖出了 X」訊息（預設關閉，避免連挖洗版）
   notify-ore-drop: false
+  # v1.0.32 生成方塊模式：刷石機由水+岩漿生成方塊時，直接依 ore-blocks 權重「變成對應礦石方塊」，
+  #   玩家／機器人挖到的就是實際礦石（原版掉落、時運、精準採集皆生效）。
+  #   true  = 生成即變礦石方塊（不再使用下方 drops 破壞時抽掉落）。
+  #   false = 舊行為：固定生成鵝卵石，破壞時才依 drops 抽取掉落物。
+  ore-block-mode: true
+  # 生成方塊模式（ore-block-mode: true）使用的「礦石方塊」權重表（鍵需為方塊材質，總和建議 100）。
+  # v1.0.35 稀有度（各礦石生成權重）整體降低 40% 並取整數；遠古遺骸保留 0.05（不取整）；
+  #   鵝卵石為基底，採「補餘」湊滿 100。
+  ore-blocks:
+    COBBLESTONE: 72.95
+    COAL_ORE: 8
+    COPPER_ORE: 5
+    IRON_ORE: 4
+    GOLD_ORE: 2
+    REDSTONE_ORE: 2
+    LAPIS_ORE: 2
+    EMERALD_ORE: 1
+    DIAMOND_ORE: 1
+    NETHER_QUARTZ_ORE: 1
+    AMETHYST_BLOCK: 1
+    ANCIENT_DEBRIS: 0.05
+  # 舊行為（ore-block-mode: false）使用的掉落物權重表。
   drops:
     COBBLESTONE: 57.4
     COAL: 13.0
@@ -162,7 +191,7 @@ animal-spawn:
     VILLAGER: 2
 
 robot:
-  # 小機器人：自動挖掘掃描範圍內的鵝卵石並存入連結的箱子。
+  # 小機器人：自動挖掘「面向前方整列」的刷石機方塊並存入連結的箱子（v1.0.33）。
   enabled: true
   # 每位玩家可部署的機器人數量「預設」上限；可被 LuckPerms 權限節點覆寫：
   #   strawskyblock.robot.limit.<n>（取玩家擁有的最大數值；無此類權限時採用本預設值）。
@@ -171,7 +200,7 @@ robot:
   purchase-cost: 50000.0
   # 挖到的方塊是否套用刷石機掉落表（true = 有機率挖出礦物；false = 固定鵝卵石）。
   use-generator-drops: true
-  # 掃描的垂直半徑（原點上下各幾格）。
+  # 前方整列的垂直容差（每格前方欄位額外涵蓋上下各幾格；設 0 為純單列水平挖取）。
   vertical-range: 1
   # 新購買機器人的預設等級。
   default-level: 1
@@ -180,9 +209,9 @@ robot:
   # 找不到等級定義時的後備值。
   fallback-interval-ticks: 200
   fallback-range: 2
-  # 統一等級 L1~L6：每升一級「挖得更快」且「掃描範圍更大」。
+  # 統一等級 L1~L6：每升一級「挖得更快」且「前方整列更長」。
   #   interval-ticks：挖掘間隔，越小越快（20 tick = 1 秒）。
-  #   range：水平掃描半徑（格），越大範圍越廣。
+  #   range：面向前方整列的長度（格數）＝一次挖取範圍，越大挖得越遠。
   #   cost：升級到此等級所需花費（需啟用 Vault 經濟系統才會扣款，否則僅為佔位）。
   levels:
     1:
@@ -233,24 +262,28 @@ economy:
 # buy-prices 為「每 1 個」的收購單價（需安裝 Vault 經濟系統才會生效）。
 shop:
   enabled: true
+  # v1.0.34 商店僅收購「燒製後的成品」：粗銅/粗鐵/粗金與遠古遺骸需先用熔爐燒成
+  #   銅錠/鐵錠/金錠/獄髓碎片才可賣出（生礦不予收購）。其餘非可燒製的掉落物維持原樣收購。
+  # v1.0.35 收購單價整體降低 40% 並取整數。
   buy-prices:
-    COAL: 2.0
-    RAW_COPPER: 3.0
-    RAW_IRON: 5.0
-    RAW_GOLD: 8.0
-    REDSTONE: 2.0
-    LAPIS_LAZULI: 3.0
-    QUARTZ: 3.0
-    AMETHYST_SHARD: 5.0
-    EMERALD: 12.0
-    DIAMOND: 20.0
-    ANCIENT_DEBRIS: 100.0
+    COAL: 1
+    COPPER_INGOT: 2
+    IRON_INGOT: 3
+    GOLD_INGOT: 5
+    REDSTONE: 1
+    LAPIS_LAZULI: 2
+    QUARTZ: 2
+    AMETHYST_SHARD: 3
+    EMERALD: 7
+    DIAMOND: 12
+    NETHERITE_SCRAP: 60
 
+# v1.0.38 虛空防護設定：主世界大廳與空島世界共用，跌入虛空時傳回安全地面。
 void-protection:
   enabled: true
   # 虛空防護 Y 閾值（小於等於此值時觸發傳送）
   y-threshold: 0
-  # 傳送回島嶼前給予的無敵 tick 數
+  # 傳送回安全地面前給予的無敵 tick 數
   invincibility-ticks: 40
   # 無島嶼玩家的 fallback 重生點（預設使用空島世界出生點）
   fallback-spawn:

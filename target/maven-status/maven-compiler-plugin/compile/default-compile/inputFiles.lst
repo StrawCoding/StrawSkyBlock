@@ -10,6 +10,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/economy/VaultEconomyHook.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/generator/AnimalSpawnService.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/generator/CobbleGeneratorService.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/generator/OreBlockTable.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/generator/OreDropTable.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/gui/ConfirmGui.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/gui/Gui.java
@@ -26,6 +27,8 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandFlag.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandLocationAllocator.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandMember.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandOccupancyService.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandOccupancyState.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandRepository.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandRole.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/island/IslandService.java
@@ -36,6 +39,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/CreatureSpawnListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/EntityDamageListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/InventoryClickListener.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/IslandOccupancyListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/NetherPortalListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/PlayerInteractListener.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/listener/PlayerJoinListener.java
@@ -48,16 +52,17 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/protection/InteractionType.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/protection/ProtectionService.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/Robot.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotForwardRow.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotItem.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotLevels.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotLimit.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotPurchase.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotRepository.java
-/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotScanArea.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/RobotService.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/robot/UpgradeResult.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/shop/ShopPricing.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/shop/ShopService.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/AdminBypass.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/BlockPosition.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/IslandTeleportHelper.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/ItemBuilder.java
@@ -68,6 +73,7 @@
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/SpawnCommandParser.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/TeleportActivityTracker.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/util/WeightedRandom.java
+/mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/world/LobbyFloorArea.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/world/NetherPortalRouter.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/world/VoidChunkGenerator.java
 /mnt/data/code/project/StrawMC/StrawSkyBlock/src/main/java/com/strawserver/strawskyblock/world/WorldManager.java

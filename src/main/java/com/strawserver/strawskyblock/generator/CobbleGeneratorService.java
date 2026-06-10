@@ -3,6 +3,7 @@ package com.strawserver.strawskyblock.generator;
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
 import com.strawserver.strawskyblock.util.BlockPosition;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -19,20 +20,27 @@ public class CobbleGeneratorService {
 
     private final StrawSkyBlockPlugin plugin;
     private final OreDropTable dropTable;
+    private final OreBlockTable oreBlockTable;
     private final ConcurrentHashMap<BlockPosition, Long> generated = new ConcurrentHashMap<>();
     private BukkitTask cleanupTask;
 
     public CobbleGeneratorService(StrawSkyBlockPlugin plugin) {
         this.plugin = plugin;
         this.dropTable = new OreDropTable(plugin);
+        this.oreBlockTable = new OreBlockTable(plugin);
     }
 
     public OreDropTable getDropTable() {
         return dropTable;
     }
 
+    public OreBlockTable getOreBlockTable() {
+        return oreBlockTable;
+    }
+
     public void reload() {
         dropTable.reload();
+        oreBlockTable.reload();
     }
 
     public void start() {
@@ -69,5 +77,19 @@ public class CobbleGeneratorService {
 
     public ItemStack rollDrop() {
         return dropTable.roll();
+    }
+
+    /**
+     * 生成方塊模式：依權重抽取一個礦石方塊材質（含機率回到鵝卵石）。
+     */
+    public Material rollOreBlock() {
+        return oreBlockTable.roll();
+    }
+
+    /**
+     * 該材質是否屬於刷石機方塊（鵝卵石或設定中的礦石方塊）。
+     */
+    public boolean isGeneratorBlock(Material material) {
+        return oreBlockTable.isGeneratorBlock(material);
     }
 }

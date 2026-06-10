@@ -10,6 +10,7 @@ import com.strawserver.strawskyblock.shop.ShopService;
 import com.strawserver.strawskyblock.economy.VaultEconomyHook;
 import com.strawserver.strawskyblock.generator.AnimalSpawnService;
 import com.strawserver.strawskyblock.generator.CobbleGeneratorService;
+import com.strawserver.strawskyblock.island.IslandOccupancyService;
 import com.strawserver.strawskyblock.island.IslandService;
 import com.strawserver.strawskyblock.listener.BlockBreakListener;
 import com.strawserver.strawskyblock.listener.BlockFromToListener;
@@ -17,6 +18,7 @@ import com.strawserver.strawskyblock.listener.BlockPlaceListener;
 import com.strawserver.strawskyblock.listener.CreatureSpawnListener;
 import com.strawserver.strawskyblock.listener.EntityDamageListener;
 import com.strawserver.strawskyblock.listener.InventoryClickListener;
+import com.strawserver.strawskyblock.listener.IslandOccupancyListener;
 import com.strawserver.strawskyblock.listener.NetherPortalListener;
 import com.strawserver.strawskyblock.listener.PlayerInteractListener;
 import com.strawserver.strawskyblock.listener.PlayerJoinListener;
@@ -61,6 +63,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
     private EconomyHook economyHook;
     private ShopService shopService;
     private TeleportActivityTracker teleportActivityTracker;
+    private IslandOccupancyService islandOccupancyService;
 
     private final Set<UUID> bypassing = ConcurrentHashMap.newKeySet();
 
@@ -106,6 +109,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         this.animalSpawnService = new AnimalSpawnService(this);
         this.robotService = new RobotService(this);
         this.shopService = new ShopService(this);
+        this.islandOccupancyService = new IslandOccupancyService(this);
 
         registerListeners();
         registerCommands();
@@ -141,6 +145,9 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         islandService.loadAll();
         robotService.loadAll();
         robotService.start();
+
+        // v1.0.39：島嶼快取載入完成後，重新計算所有線上玩家的在場狀態，使佔用狀態正確。
+        islandOccupancyService.recomputeAll();
 
         getLogger().info("StrawSkyBlock 啟動後初始化完成。");
     }
@@ -195,6 +202,7 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
         pm.registerEvents(new VoidProtectionListener(this), this);
         pm.registerEvents(new NetherPortalListener(this), this);
         pm.registerEvents(new RobotEntityListener(this), this);
+        pm.registerEvents(new IslandOccupancyListener(this), this);
         pm.registerEvents(teleportActivityTracker, this);
     }
 
@@ -303,5 +311,9 @@ public final class StrawSkyBlockPlugin extends JavaPlugin {
 
     public TeleportActivityTracker getTeleportActivityTracker() {
         return teleportActivityTracker;
+    }
+
+    public IslandOccupancyService getIslandOccupancyService() {
+        return islandOccupancyService;
     }
 }

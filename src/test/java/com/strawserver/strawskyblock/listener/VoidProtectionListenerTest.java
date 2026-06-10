@@ -25,6 +25,13 @@ class VoidProtectionListenerTest {
     }
 
     @Test
+    void shouldCancelVoidDamage_whenInMainWorldAndBelowThreshold() {
+        // 主世界大廳也應受保護
+        assertTrue(VoidProtectionListener.shouldCancelVoidDamage(
+                EntityDamageEvent.DamageCause.VOID, true, -5.0, 0));
+    }
+
+    @Test
     void shouldNotCancelVoidDamage_whenAboveThreshold() {
         // Y=1, threshold=0 → 不應取消
         assertFalse(VoidProtectionListener.shouldCancelVoidDamage(
@@ -32,8 +39,8 @@ class VoidProtectionListenerTest {
     }
 
     @Test
-    void shouldNotCancelVoidDamage_whenNotInIslandWorld() {
-        // 雖然 Y=-5 且 cause=VOID，但不在空島世界
+    void shouldNotCancelVoidDamage_whenNotInProtectedWorld() {
+        // 雖然 Y=-5 且 cause=VOID，但不在受保護世界
         assertFalse(VoidProtectionListener.shouldCancelVoidDamage(
                 EntityDamageEvent.DamageCause.VOID, false, -5.0, 0));
     }
@@ -66,5 +73,56 @@ class VoidProtectionListenerTest {
     @Test
     void shouldNotTeleportToIslandHome_whenNeitherAvailable() {
         assertFalse(VoidProtectionListener.shouldTeleportToIslandHome(false, false));
+    }
+
+    // ---- resolveDestinationType 測試 ----
+
+    @Test
+    void resolveDestinationType_mainWorldChoosesMainWorldSpawn_evenWhenIslandHomeExists() {
+        assertEquals(
+                VoidProtectionListener.VoidTeleportDestination.MAIN_WORLD_SPAWN,
+                VoidProtectionListener.resolveDestinationType(
+                        true, false, true, true));
+    }
+
+    @Test
+    void resolveDestinationType_islandWorldChoosesIslandHome_whenAvailable() {
+        assertEquals(
+                VoidProtectionListener.VoidTeleportDestination.ISLAND_HOME,
+                VoidProtectionListener.resolveDestinationType(
+                        false, true, true, true));
+    }
+
+    @Test
+    void resolveDestinationType_islandWorldChoosesFallback_whenNoHome() {
+        assertEquals(
+                VoidProtectionListener.VoidTeleportDestination.FALLBACK_SPAWN,
+                VoidProtectionListener.resolveDestinationType(
+                        false, true, true, false));
+    }
+
+    @Test
+    void resolveDestinationType_islandWorldChoosesFallback_whenNoIsland() {
+        assertEquals(
+                VoidProtectionListener.VoidTeleportDestination.FALLBACK_SPAWN,
+                VoidProtectionListener.resolveDestinationType(
+                        false, true, false, false));
+    }
+
+    @Test
+    void resolveDestinationType_unrelatedContextReturnsNone() {
+        assertEquals(
+                VoidProtectionListener.VoidTeleportDestination.NONE,
+                VoidProtectionListener.resolveDestinationType(
+                        false, false, true, true));
+    }
+
+    @Test
+    void resolveDestinationType_mainWorldTakesPrecedenceOverIslandWorld() {
+        // 理論上不會同時成立，但測試主世界優先級
+        assertEquals(
+                VoidProtectionListener.VoidTeleportDestination.MAIN_WORLD_SPAWN,
+                VoidProtectionListener.resolveDestinationType(
+                        true, true, true, true));
     }
 }

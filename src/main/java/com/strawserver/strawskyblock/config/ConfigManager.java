@@ -316,10 +316,14 @@ public class ConfigManager {
     }
 
     /**
-     * 是否於主世界出生點放置一個草方塊。
+     * 是否於主世界出生點周圍鋪設 3x3 區塊（9 個區塊）的石磚地板（v1.0.36）。
+     *
+     * <p>向下相容：若使用者沿用舊鍵 {@code world.vanilla-overworld-grass}（v1.0.29 的單一草方塊開關）
+     * 而未設定新鍵，仍以舊鍵的值作為地板開關，避免曾關閉者升級後又被鋪上地板。</p>
      */
-    public boolean isVanillaOverworldGrass() {
-        return config.getBoolean("world.vanilla-overworld-grass", true);
+    public boolean isVanillaOverworldFloor() {
+        boolean legacyDefault = config.getBoolean("world.vanilla-overworld-grass", true);
+        return config.getBoolean("world.vanilla-overworld-floor", legacyDefault);
     }
 
     /**
@@ -344,6 +348,14 @@ public class ConfigManager {
             return true;
         }
         return getVanillaVoidWorlds().contains(worldName);
+    }
+
+    // ---- island-pause ----
+    /**
+     * v1.0.39 空島暫停：當島上最後一位玩家離開時，是否暫停無人值守活動（如小機器人挖掘）。
+     */
+    public boolean isIslandPauseEnabled() {
+        return config.getBoolean("island-pause.enabled", true);
     }
 
     // ---- island ----
@@ -391,6 +403,27 @@ public class ConfigManager {
     public Map<String, Double> getGeneratorDrops() {
         Map<String, Double> result = new HashMap<>();
         ConfigurationSection section = config.getConfigurationSection("generator.drops");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                result.put(key.toUpperCase(Locale.ROOT), section.getDouble(key));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * v1.0.32 生成方塊模式：刷石機生成時是否直接把方塊變成對應礦石方塊。
+     */
+    public boolean isGeneratorOreBlockMode() {
+        return config.getBoolean("generator.ore-block-mode", true);
+    }
+
+    /**
+     * 生成方塊模式使用的礦石「方塊」權重表（鍵為方塊材質名稱）。
+     */
+    public Map<String, Double> getGeneratorOreBlocks() {
+        Map<String, Double> result = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("generator.ore-blocks");
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 result.put(key.toUpperCase(Locale.ROOT), section.getDouble(key));

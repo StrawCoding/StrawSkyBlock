@@ -3,6 +3,7 @@ package com.strawserver.strawskyblock.protection;
 import com.strawserver.strawskyblock.StrawSkyBlockPlugin;
 import com.strawserver.strawskyblock.island.Island;
 import com.strawserver.strawskyblock.island.IslandFlag;
+import com.strawserver.strawskyblock.util.AdminBypass;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -24,9 +25,19 @@ public class ProtectionService {
                 && location.getWorld().getName().equals(plugin.getConfigManager().getIslandWorld());
     }
 
+    /**
+     * 世界保護（破壞／放置／互動／傷害）的繞過判定。
+     *
+     * <p>全域管理員繞過：只要持有 {@link AdminBypass#PERMISSION} 權限即放行所有
+     * 世界保護限制（破壞／放置／互動／傷害），不再額外要求 {@code /is admin bypass}
+     * 切換開關，與其他「限制類」繞過一致（見 {@link AdminBypass}）。</p>
+     *
+     * <p>{@code /is admin bypass} 切換開關仍保留作為手動繞過途徑：未持有權限但被
+     * 暫時授權切換的情境仍可生效。</p>
+     */
     public boolean hasBypass(Player player) {
-        return player.hasPermission("strawskyblock.admin.bypass")
-                && plugin.isBypassing(player.getUniqueId());
+        return AdminBypass.hasBypass(player)
+                || plugin.isBypassing(player.getUniqueId());
     }
 
     /**

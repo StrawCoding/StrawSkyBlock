@@ -5,6 +5,9 @@ import com.strawserver.strawskyblock.config.MessageManager;
 import com.strawserver.strawskyblock.island.Island;
 import com.strawserver.strawskyblock.robot.Robot;
 import com.strawserver.strawskyblock.robot.RobotItem;
+import com.strawserver.strawskyblock.robot.RobotLimit;
+import com.strawserver.strawskyblock.util.AdminBypass;
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Entity;
@@ -53,36 +56,49 @@ public class RobotEntityListener implements Listener {
     }
 
     /**
-     * 機器人盔甲架不受一般傷害；若是玩家左鍵攻擊，則視為「拿起」收回背包。
+     * 玩家左鍵攻擊機器人盔甲架 → 視為「拿起」收回背包（保留等級）。
      *
-     * <p>必須以 {@code ignoreCancelled = false} 且最早優先序（LOWEST）處理：盔甲架設為 invulnerable，
-     * 玩家左鍵攻擊時 {@link EntityDamageByEntityEvent} 會因「無敵」被預先標記為已取消；
-     * 另一個 {@link EntityDamageListener}（保護判定）也可能先行取消。若沿用 {@code ignoreCancelled = true}，
-     * 本處理會被略過，導致擁有者左鍵完全無法拿取（治本：不論是否已被取消都接手，並由本處理統一取消事件）。</p>
+     * <p>治本關鍵（v1.0.31）：盔甲架設為 {@code invulnerable}，NMS 在玩家攻擊無敵實體時會於
+     * 「無敵檢查」階段提早 return，根本<b>不會觸發</b> {@link EntityDamageByEntityEvent}，
+     * 因此 v1.0.27 僅調整 {@code EntityDamageEvent} 的 {@code ignoreCancelled} 仍無效。
+     * Paper 的 {@link PrePlayerAttackEntityEvent} 於傷害／無敵檢查<b>之前</b>就觸發，不受無敵影響，
+     * 是偵測「左鍵攻擊實體」最可靠的入口。此處取消事件（不真的攻擊）並接手拿取。</p>
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
-    public void onDamage(EntityDamageEvent event) {
-        Entity entity = event.getEntity();
+    public void onPreAttack(PrePlayerAttackEntityEvent event) {
+        Entity entity = event.getAttacked();
         if (!plugin.getRobotService().isRobotStand(entity)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event instanceof EntityDamageByEntityEvent byEntity)
-                || !(byEntity.getDamager() instanceof Player player)) {
-            return;
-        }
+        Player player = event.getPlayer();
         Robot robot = plugin.getRobotService().getRobotByStand(entity);
         if (robot == null) {
             entity.remove();
             return;
         }
         Island island = plugin.getIslandService().getCache().getByUuid(robot.getIslandUuid());
-        if (island == null || !island.getRole(player.getUniqueId()).isTrusted()) {
+        if (island == null) {
+            return;
+        }
+        // 管理員繞過：無視信任成員限制，可拿取任何島嶼上的機器人。
+        if (!AdminBypass.hasBypass(player) && !island.getRole(player.getUniqueId()).isTrusted()) {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
         }
         plugin.getRobotService().pickUp(player, robot);
         plugin.getMessageManager().send(player, "robot.picked-up");
+    }
+
+    /**
+     * 機器人盔甲架的環境傷害保護：取消任何對機器人盔甲架的傷害（防爆炸／火焰／生物等破壞）。
+     * 盔甲架本身已 invulnerable，此為防禦性備援；左鍵拿取改由 {@link #onPreAttack} 處理。
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onDamage(EntityDamageEvent event) {
+        if (plugin.getRobotService().isRobotStand(event.getEntity())) {
+            event.setCancelled(true);
+        }
     }
 
     /**
@@ -105,7 +121,11 @@ public class RobotEntityListener implements Listener {
             return;
         }
         Island island = plugin.getIslandService().getCache().getByUuid(robot.getIslandUuid());
-        if (island == null || !island.getRole(player.getUniqueId()).isTrusted()) {
+        if (island == null) {
+            return;
+        }
+        // 管理員繞過：無視信任成員限制，可為任何島嶼上的機器人連結箱子。
+        if (!AdminBypass.hasBypass(player) && !island.getRole(player.getUniqueId()).isTrusted()) {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
         }
@@ -175,26 +195,29 @@ public class RobotEntityListener implements Listener {
     }
 
     private void handlePlace(Player player, Block clicked, org.bukkit.block.BlockFace face, ItemStack inHand) {
+        boolean bypass = AdminBypass.hasBypass(player);
         Block target = clicked.getRelative(face);
         Island island = plugin.getIslandService().getByLocation(target.getLocation());
+        // 安全性檢查：機器人必須綁定於某座島嶼，故此處不繞過（避免產生孤兒資料）。
         if (island == null) {
             plugin.getMessageManager().send(player, "robot.place-not-on-island");
             return;
         }
-        if (!island.getRole(player.getUniqueId()).isTrusted()) {
+        // 管理員繞過：無視信任成員限制，可在任何島嶼放置機器人。
+        if (!bypass && !island.getRole(player.getUniqueId()).isTrusted()) {
             plugin.getMessageManager().send(player, "robot.not-trusted");
             return;
         }
-        // 該位置已有機器人。
+        // 該位置已有機器人（資料完整性檢查，不繞過）。
         if (plugin.getRobotService().getByLocation(
                 target.getWorld().getName(), target.getX(), target.getY(), target.getZ()) != null) {
             plugin.getMessageManager().send(player, "robot.already-exists");
             return;
         }
-        // 依 LuckPerms 上限檢查玩家可部署數量。
+        // 依 LuckPerms 上限檢查玩家可部署數量；管理員繞過則無視上限。
         int limit = plugin.getRobotService().getRobotLimit(player);
         int owned = plugin.getRobotService().countByOwner(player.getUniqueId());
-        if (owned >= limit) {
+        if (!RobotLimit.allowsPlacement(owned, limit, bypass)) {
             plugin.getMessageManager().send(player, "robot.limit-reached",
                     MessageManager.placeholders("max", String.valueOf(limit)));
             return;
